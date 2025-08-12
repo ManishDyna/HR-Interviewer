@@ -7,17 +7,18 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
-    console.log("Received email:", email);
+    const { email , interview_id} = await req.json();
+    console.log("Received email:", email,interview_id);
     if (!email) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
     const { data, error } = await supabase
-      .from("user")
+      .from("interview_assignee")
       .select("id")
       .ilike("email", email)
+      .eq("interview_id", interview_id)
       .single();
-    console.log("Supabase data:", data, "error:", error);
+    console.log("Supabase data:", data, "error:", error); 
     if (error || !data) {
       return NextResponse.json(
         { error: "You are not authorized person" },

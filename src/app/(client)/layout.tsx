@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import Navbar from "@/components/navbar";
 import Providers from "@/components/providers";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/toaster";
 import SideMenu from "@/components/sideMenu";
 import { usePathname } from "next/navigation";
 
@@ -65,18 +65,7 @@ export default function RootLayout({
                 {children}
               </div>
             </div>
-            <Toaster
-              toastOptions={{
-                classNames: {
-                  toast: "bg-white",
-                  title: "text-black",
-                  description: "text-red-400",
-                  actionButton: "bg-indigo-400",
-                  cancelButton: "bg-orange-400",
-                  closeButton: "bg-white-400",
-                },
-              }}
-            />
+            <Toaster />
           </Providers>
         </ClerkProvider>
       </body>

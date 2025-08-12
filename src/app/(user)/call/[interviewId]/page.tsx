@@ -7,7 +7,7 @@ import Image from "next/image";
 import { ArrowUpRightSquareIcon } from "lucide-react";
 import { Interview } from "@/types/interview";
 import LoaderWithText from "@/components/loaders/loader-with-text/loaderWithText";
-
+import { Toaster } from "sonner";
 type Props = {
   params: {
     interviewId: string;
@@ -155,6 +155,7 @@ function InterviewInterface({ params }: Props) {
           </a>
         </div>
       </div>
+      <Toaster />
     </div>
   );
 }

@@ -136,7 +136,7 @@ function DetailsPopup({
       setIsAnonymous(false);
       setNumQuestions("");
       setDuration("");
-      setIsClicked(false);
+      setIsClicked(false);  
     }
   }, [open]);
 

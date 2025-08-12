@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState, useContext, ReactNode, useEffect } from "react";
-import { User } from "@/types/user";
+import { ClientUser } from "@/types/user";
 import { useClerk, useOrganization } from "@clerk/nextjs";
 import { ClientService } from "@/services/clients.service";
 
 interface ClientContextProps {
-  client?: User;
+  client?: ClientUser;
 }
 
 export const ClientContext = React.createContext<ClientContextProps>({
@@ -18,7 +18,7 @@ interface ClientProviderProps {
 }
 
 export function ClientProvider({ children }: ClientProviderProps) {
-  const [client, setClient] = useState<User>();
+  const [client, setClient] = useState<ClientUser>();
   const { user } = useClerk();
   const { organization } = useOrganization();
 

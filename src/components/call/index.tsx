@@ -14,7 +14,7 @@ import Image from "next/image";
 import axios from "axios";
 import { RetellWebClient } from "retell-client-js-sdk";
 import MiniLoader from "../loaders/mini-loader/miniLoader";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner";
 import { isLightColor, testEmail } from "@/lib/utils";
 import { ResponseService } from "@/services/responses.service";
 import { Interview } from "@/types/interview";
@@ -199,7 +199,8 @@ function Call({ interview }: InterviewProps) {
     setLoading(true);
     // 1. Validate email with backend
     try {
-      const validateRes = await axios.post("/api/validate-user", { email });
+      const validateRes = await axios.post("/api/validate-user", { email,interview_id: interview.id, });
+      
       console.log("validateRes", validateRes);
       if (!validateRes.data.success) {
         toast.error(validateRes.data.error || "You are not authorized person");
@@ -207,9 +208,12 @@ function Call({ interview }: InterviewProps) {
         return;
       }
     } catch (err: any) {
-      toast.error(
-        err?.response?.data?.error || "You are not authorized person"
-      );
+    console.log("CATCH BLOCK", err?.response);
+    const message =
+      err?.response?.data?.error ||
+      err?.message ||
+      "You are not authorized person";
+      toast.error(message);
       setLoading(false);
       return;
     }
