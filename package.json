@@ -49,6 +49,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "embla-carousel-react": "^8.0.0-rc22",
+    "formidable": "^3.5.4",
     "framer-motion": "^11.3.21",
     "fs": "^0.0.1-security",
     "init": "^0.1.2",

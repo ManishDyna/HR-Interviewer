@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { InterviewAssignee, CreateAssigneeRequest, UpdateAssigneeRequest } from '@/types/user';
 import { useAssignees } from '@/contexts/users.context';
 
+
 //  I want to fetch Interview List in form
 import { useInterviews } from '@/contexts/interviews.context';
 import { Interview } from '@/types/interview';
@@ -27,6 +28,7 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
   assignee,
   mode
 }) => {
+  const [userImage, setUserImage] = useState<File | null>(null);
   const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const { addAssignee, updateAssignee } = useAssignees();
   const [formData, setFormData] = useState<CreateAssigneeRequest>({
@@ -81,40 +83,63 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
     setIsLoading(true);
 
     try {
-      if (mode === 'create') {
-        await addAssignee(formData);
-      } else if (assignee) {
-        const updateData: UpdateAssigneeRequest = {
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          email: formData.email,
-          phone: formData.phone,
-          interview_id: formData.interview_id,
-          avatar_url: formData.avatar_url,
-          status: formData.status,
-          notes: formData.notes
-        };
-        await updateAssignee(assignee.id, updateData);
-      }
-      
-      onClose();
-      setFormData({
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone: '',
-        interview_id: '',
-        avatar_url: '',
-        organization_id: '',
-        status: 'active',
-        notes: ''
+    // Create a copy of the form data to modify
+    const updatedFormData = { ...formData };
+
+    // If userImage is present, upload it first
+    if (userImage) {
+      const imageFormData = new FormData();
+      imageFormData.append("userImage", userImage);
+
+      const uploadRes = await fetch("/api/upload-user-image", {
+        method: "POST",
+        body: imageFormData,
       });
-    } catch (error) {
-      console.error('Error saving assignee:', error);
-    } finally {
-      setIsLoading(false);
+
+      if (!uploadRes.ok) {
+        throw new Error("Image upload failed");
+      }
+
+      const { imageUrl } = await uploadRes.json();
+      // Update the avatar_url in the form data
+      updatedFormData.avatar_url = imageUrl;
     }
-  };
+
+    if (mode === 'create') {
+      await addAssignee(updatedFormData);
+    } else if (assignee) {
+      const updateData: UpdateAssigneeRequest = {
+        first_name: updatedFormData.first_name,
+        last_name: updatedFormData.last_name,
+        email: updatedFormData.email,
+        phone: updatedFormData.phone,
+        interview_id: updatedFormData.interview_id,
+        avatar_url: updatedFormData.avatar_url,
+        status: updatedFormData.status,
+        notes: updatedFormData.notes
+      };
+      await updateAssignee(assignee.id, updateData);
+    }
+
+    onClose();
+    setFormData({
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      interview_id: '',
+      avatar_url: '',
+      organization_id: '',
+      status: 'active',
+      notes: ''
+    });
+    setUserImage(null); // Reset the image state
+  } catch (error) {
+    console.error('Error saving assignee:', error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleInputChange = (field: keyof CreateAssigneeRequest, value: string) => {
     setFormData(prev => ({
@@ -125,6 +150,12 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
 
   const handleInputChangeEvent = (field: keyof CreateAssigneeRequest) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     handleInputChange(field, e.target.value);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setUserImage(e.target.files[0]);
+    }
   };
 
   return (
@@ -206,13 +237,23 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
               </div>
 
             <div className="space-y-2">
-              <Label htmlFor="avatar_url">Avatar URL</Label>
-              <Input
-                id="avatar_url"
-                value={formData.avatar_url}
-                onChange={handleInputChangeEvent('avatar_url')}
-                placeholder="Enter avatar URL"
-              />
+              <Label htmlFor="avatar_url">Profile Image</Label>
+              <div className="flex flex-col gap-2">
+                {formData.avatar_url && (
+                  <img 
+                    src={formData.avatar_url} 
+                    alt="Preview" 
+                    className="w-20 h-20 object-cover rounded-full"
+                  />
+                )}
+                <Input
+                  type="file"
+                  name="userImage"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="cursor-pointer"
+                />
+              </div>
             </div>
           
           <div className="space-y-2">

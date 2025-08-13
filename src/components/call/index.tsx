@@ -21,6 +21,7 @@ import { Interview } from "@/types/interview";
 import { FeedbackData } from "@/types/response";
 import { FeedbackService } from "@/services/feedback.service";
 import { FeedbackForm } from "@/components/call/feedbackForm";
+import VideoRecorder from '@/components/dashboard/interview/VideoRecorder';
 import {
   TabSwitchWarning,
   useTabSwitchPrevention,
@@ -435,17 +436,13 @@ function Call({ interview }: InterviewProps) {
               <div className="flex flex-row p-2 grow">
                 <div className="border-x-2 border-grey w-[50%] my-auto min-h-[70%]">
                   <div className="flex flex-col justify-evenly">
-                    <div
-                      className={`text-[22px] w-[80%] md:text-[26px] mt-4 min-h-[250px] mx-auto px-6`}
-                    >
-                      {lastInterviewerResponse}
-                    </div>
-                    <div className="flex flex-col mx-auto justify-center items-center align-middle">
+                   
+                    <div className="flex flex-col mx-auto justify-center items-center align-middle" style={{background: "#a9a9a924",padding: 10}} >
                       <Image
                         src={interviewerImg}
                         alt="Image of the interviewer"
-                        width={120}
-                        height={120}
+                        width={212}
+                        height={190}
                         className={`object-cover object-center mx-auto my-auto ${
                           activeTurn === "agent"
                             ? `border-4 border-[${interview.theme_color}] rounded-full`
@@ -454,30 +451,34 @@ function Call({ interview }: InterviewProps) {
                       />
                       <div className="font-semibold">Interviewer</div>
                     </div>
+                    <div
+                      className={`text-[22px] w-[80%] md:text-[26px] mt-4 min-h-[250px] mx-auto px-6`}
+                    >
+                      {lastInterviewerResponse}
+                    </div>
+
                   </div>
                 </div>
 
                 <div className="flex flex-col justify-evenly w-[50%]">
+                 
+                   <div className="flex flex-col mx-auto justify-center items-center align-middle" style={{background: "#a9a9a924",padding: 10}} >
+                    <VideoRecorder
+                      interviewId={interview.id}
+                      username={name || "Anonymous"}
+                    />
+                    {/* Show user name instead of "You" */}
+                    <div className="font-semibold mt-2">
+                      {name || "Anonymous"}
+                    </div>
+                  </div>
                   <div
                     ref={lastUserResponseRef}
                     className={`text-[22px] w-[80%] md:text-[26px] mt-4 mx-auto h-[250px] px-6 overflow-y-auto`}
                   >
                     {lastUserResponse}
                   </div>
-                  <div className="flex flex-col mx-auto justify-center items-center align-middle">
-                    <Image
-                      src={`/user-icon.png`}
-                      alt="Picture of the user"
-                      width={120}
-                      height={120}
-                      className={`object-cover object-center mx-auto my-auto ${
-                        activeTurn === "user"
-                          ? `border-4 border-[${interview.theme_color}] rounded-full`
-                          : ""
-                      }`}
-                    />
-                    <div className="font-semibold">You</div>
-                  </div>
+                  
                 </div>
               </div>
             )}
