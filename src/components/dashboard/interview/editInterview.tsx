@@ -36,6 +36,9 @@ function EditInterview({ interview }: EditInterviewProps) {
   const { interviewers } = useInterviewers();
   const { fetchInterviews } = useInterviews();
 
+  const [name, setName] = useState<string>(
+    interview?.name || "",
+  );
   const [description, setDescription] = useState<string>(
     interview?.description || "",
   );
@@ -102,6 +105,7 @@ function EditInterview({ interview }: EditInterviewProps) {
       questions.length < numQuestions ? questions.length : numQuestions;
 
     const interviewData = {
+      name: name,
       objective: objective,
       questions: questions,
       interviewer_id: Number(selectedInterviewer),
@@ -170,6 +174,19 @@ function EditInterview({ interview }: EditInterviewProps) {
           </div>
         </div>
         <div className="flex flex-row justify-between">
+          <div className="flex flex-col w-full mr-4">
+            <p className="mt-3 mb-1 ml-2 font-medium">
+              Interview Name
+            </p>
+            <input
+              type="text"
+              value={name}
+              className="h-10 mt-1 ml-2 py-2 border-2 rounded-md w-[75%] px-2 border-gray-400"
+              placeholder="Enter your interview name"
+              onChange={(e) => setName(e.target.value)}
+              onBlur={(e) => setName(e.target.value.trim())}
+            />
+          </div>
           <p className="mt-3 mb-1 ml-2 font-medium">
             Interview Description{" "}
             <span className="text-xs ml-2 font-normal">

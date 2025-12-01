@@ -12,7 +12,7 @@ import { InterviewAssignee, CreateAssigneeRequest, UpdateAssigneeRequest } from 
 import { useAssignees } from '@/contexts/users.context';
 
 
-//  I want to fetch Interview List in form
+// I want to fetch Interview List in form
 import { useInterviews } from '@/contexts/interviews.context';
 import { Interview } from '@/types/interview';
 interface CreateAssigneeModalProps {
