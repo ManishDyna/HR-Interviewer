@@ -21,13 +21,17 @@ const interviewerCard = ({ interviewer }: Props) => {
       >
         <CardContent className="p-0">
           <div className="w-full h-28 overflow-hidden">
-            <Image
-              src={interviewer.image}
-              alt="Picture of the interviewer"
-              width={200}
-              height={40}
-              className="w-full h-full object-cover object-center"
-            />
+            {interviewer.image ? (
+              <Image
+                src={interviewer.image}
+                alt="Picture of the interviewer"
+                width={200}
+                height={40}
+                className="w-full h-full object-cover object-center"
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-200 animate-pulse" />
+            )}
           </div>
           <CardTitle className="mt-3 text-base text-center">
             {interviewer.name}

@@ -571,13 +571,17 @@ function Call({ interview }: InterviewProps) {
                           : "bg-slate-200"
                       }`}>
                         <div className="bg-white p-1 rounded-full">
-                          <Image
-                            src={interviewerImg}
-                            alt="Interviewer"
-                            width={140}
-                            height={140}
-                            className="rounded-full object-cover w-32 h-32 lg:w-36 lg:h-36"
-                          />
+                          {interviewerImg ? (
+                            <Image
+                              src={interviewerImg}
+                              alt="Interviewer"
+                              width={140}
+                              height={140}
+                              className="rounded-full object-cover w-32 h-32 lg:w-36 lg:h-36"
+                            />
+                          ) : (
+                            <div className="w-32 h-32 lg:w-36 lg:h-36 rounded-full bg-slate-200 animate-pulse" />
+                          )}
                         </div>
                         {activeTurn === "agent" && (
                           <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">

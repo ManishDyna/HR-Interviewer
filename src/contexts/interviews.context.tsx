@@ -31,7 +31,7 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const { user } = useClerk();
   const { organization } = useOrganization();
-  const [interviewsLoading, setInterviewsLoading] = useState(false);
+  const [interviewsLoading, setInterviewsLoading] = useState(true);
 
   const fetchInterviews = async () => {
     try {

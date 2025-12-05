@@ -3,10 +3,21 @@
 import React from "react";
 import { PlayCircleIcon, SpeechIcon, Users } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import { useLoading } from "@/contexts/loading.context";
 
 function SideMenu() {
   const pathname = usePathname();
   const router = useRouter();
+  const { startLoading } = useLoading();
+
+  const handleNavigation = (path: string) => {
+    // Don't show loader if already on the exact same page
+    if (pathname === path) {
+      return;
+    }
+    startLoading();
+    router.push(path);
+  };
 
   return (
     <div className="z-[10] bg-slate-100 p-6 w-[200px] fixed top-[64px] left-0 h-full">
@@ -19,7 +30,7 @@ function SideMenu() {
                 ? "bg-indigo-200"
                 : "bg-slate-100"
             }`}
-            onClick={() => router.push("/dashboard")}
+            onClick={() => handleNavigation("/dashboard")}
           >
             <PlayCircleIcon className="font-thin	 mr-2" />
             <p className="font-medium ">Interviews</p>
@@ -30,7 +41,7 @@ function SideMenu() {
                 ? "bg-indigo-200"
                 : "bg-slate-100"
             }`}
-            onClick={() => router.push("/dashboard/interviewers")}
+            onClick={() => handleNavigation("/dashboard/interviewers")}
           >
             <SpeechIcon className="font-thin mr-2" />
             <p className="font-medium ">Interviewers</p>
@@ -41,7 +52,7 @@ function SideMenu() {
                 ? "bg-indigo-200"
                 : "bg-slate-100"
             }`}
-            onClick={() => router.push("/dashboard/users")}
+            onClick={() => handleNavigation("/dashboard/users")}
           >
             <Users className="font-thin mr-2" />
             <p className="font-medium ">Users</p>
