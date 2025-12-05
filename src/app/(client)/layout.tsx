@@ -8,6 +8,8 @@ import Providers from "@/components/providers";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/toaster";
 import SideMenu from "@/components/sideMenu";
+import { NavigationLoader } from "@/components/NavigationLoader";
+import { TestLoaderButton } from "@/components/test-loader-button";
 import { usePathname } from "next/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -56,6 +58,7 @@ export default function RootLayout({
           afterSignOutUrl={"/sign-in"}
         >
           <Providers>
+            <NavigationLoader />
             {!pathname.includes("/sign-in") &&
               !pathname.includes("/sign-up") && <Navbar />}
             <div className="flex flex-row h-screen">
@@ -65,6 +68,7 @@ export default function RootLayout({
                 {children}
               </div>
             </div>
+            <TestLoaderButton />
             <Toaster />
           </Providers>
         </ClerkProvider>

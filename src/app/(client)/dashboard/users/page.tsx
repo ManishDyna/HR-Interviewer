@@ -7,32 +7,49 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Grid3X3, List, Users, UserCheck, UserX } from 'lucide-react';
+import { Search, Plus, Grid3X3, List, Users, UserCheck, UserX, Briefcase, Upload } from 'lucide-react';
 import { useAssignees } from '@/contexts/users.context';
+import { useInterviews } from '@/contexts/interviews.context';
+import { useOrganization } from '@clerk/nextjs';
 import { AssigneeCard } from '@/components/dashboard/user/userCard';
 import { CreateAssigneeModal } from '@/components/dashboard/user/createUserModal';
+import { BulkImportModal } from '@/components/dashboard/user/bulkImportModal';
 import { InterviewAssignee } from '@/types/user';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export default function AssigneesPage() {
-  const { assignees, assigneesLoading, searchAssignees, getAssigneesByStatus } = useAssignees();
+  const { assignees, assigneesLoading, refreshAssignees, searchAssignees, getAssigneesByStatus } = useAssignees();
+  const { interviews, interviewsLoading } = useInterviews();
+  const { organization } = useOrganization();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [interviewFilter, setInterviewFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedAssignee, setSelectedAssignee] = useState<InterviewAssignee | null>(null);
   const [filteredAssignees, setFilteredAssignees] = useState<InterviewAssignee[]>([]);
+  const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
 
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewAssignee, setViewAssignee] = useState<InterviewAssignee | null>(null);
 
 
-  // Filter assignees based on search and status
+  // Filter assignees based on search, status, and interview
   React.useEffect(() => {
     let filtered = assignees;
 
     if (statusFilter !== 'all') {
       filtered = filtered.filter(assignee => assignee.status === statusFilter);
+    }
+
+    if (interviewFilter !== 'all') {
+      if (interviewFilter === 'unassigned') {
+        filtered = filtered.filter(assignee => !assignee.interview_id);
+      } else if (interviewFilter === 'assigned') {
+        filtered = filtered.filter(assignee => assignee.interview_id);
+      } else {
+        filtered = filtered.filter(assignee => assignee.interview_id === interviewFilter);
+      }
     }
 
     if (searchTerm) {
@@ -44,7 +61,7 @@ export default function AssigneesPage() {
     }
 
     setFilteredAssignees(filtered);
-  }, [assignees, searchTerm, statusFilter]);
+  }, [assignees, searchTerm, statusFilter, interviewFilter]);
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -52,6 +69,10 @@ export default function AssigneesPage() {
 
   const handleStatusFilter = (value: string) => {
     setStatusFilter(value);
+  };
+
+  const handleInterviewFilter = (value: string) => {
+    setInterviewFilter(value);
   };
 
   const handleEditAssignee = (assignee: InterviewAssignee) => {
@@ -99,10 +120,20 @@ export default function AssigneesPage() {
           <h1 className="text-2xl font-bold">Interview Assignees</h1>
           <p className="text-gray-600">Manage users who can be assigned interviews</p>
         </div>
-        <Button onClick={handleCreateNew} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Assignee
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsBulkImportModalOpen(true)} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <Upload className="h-4 w-4" />
+            Import CSV
+          </Button>
+          <Button onClick={handleCreateNew} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Assignee
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -159,46 +190,85 @@ export default function AssigneesPage() {
       {/* Filters and Search */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search assignees..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search assignees..."
+                    value={searchTerm}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              <Select value={statusFilter} onValueChange={handleStatusFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setViewMode('table')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
               </div>
             </div>
             
-            <Select value={statusFilter} onValueChange={handleStatusFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <div className="flex gap-2">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'table' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setViewMode('table')}
-              >
-                <List className="h-4 w-4" />
-              </Button>
+            {/* Interview Filter */}
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4 text-gray-500" />
+              <Select value={interviewFilter} onValueChange={handleInterviewFilter}>
+                <SelectTrigger className="w-full sm:w-64">
+                  <SelectValue placeholder="Filter by interview" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Interviews</SelectItem>
+                  <SelectItem value="assigned">Has Interview Assigned</SelectItem>
+                  <SelectItem value="unassigned">No Interview Assigned</SelectItem>
+                  {!interviewsLoading && interviews.length > 0 && (
+                    <>
+                      <SelectItem value="separator" disabled className="border-t my-1">
+                        ──────────
+                      </SelectItem>
+                      {interviews.map((interview) => (
+                        <SelectItem key={interview.id} value={interview.id}>
+                          {interview.name}
+                        </SelectItem>
+                      ))}
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+              {interviewFilter !== 'all' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setInterviewFilter('all')}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  Clear
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -234,6 +304,7 @@ export default function AssigneesPage() {
                   assignee={assignee}
                   onEdit={handleEditAssignee}
                   onViewDetails={handleViewDetails}
+                  interviews={interviews}
                 />
               ))}
             </div>
@@ -278,9 +349,14 @@ export default function AssigneesPage() {
                         </td>
                         <td className="p-2">
                           {assignee.interview_id ? (
-                            <Badge variant="outline" className="text-green-600">
-                              Assigned
-                            </Badge>
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="outline" className="text-green-600">
+                                Assigned
+                              </Badge>
+                              <span className="text-xs text-gray-500">
+                                {interviews.find(i => i.id === assignee.interview_id)?.name || assignee.interview_id}
+                              </span>
+                            </div>
                           ) : (
                             <Badge variant="outline" className="text-gray-600">
                               Unassigned
@@ -322,6 +398,17 @@ export default function AssigneesPage() {
         assignee={selectedAssignee}
         mode={selectedAssignee ? 'edit' : 'create'}
       />
+
+      {/* Bulk Import Modal */}
+      <BulkImportModal
+        isOpen={isBulkImportModalOpen}
+        onClose={() => setIsBulkImportModalOpen(false)}
+        onImportComplete={() => {
+          // Refresh the assignees list after import
+          refreshAssignees();
+        }}
+      />
+
       {/* View Details Modal */}
       {isViewModalOpen && viewAssignee && (
         <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
@@ -329,15 +416,49 @@ export default function AssigneesPage() {
             <DialogHeader>
               <DialogTitle>Assignee Details</DialogTitle>
             </DialogHeader>
-            <div className="space-y-2">
-              <p><strong>Name:</strong> {viewAssignee.first_name} {viewAssignee.last_name}</p>
-              <p><strong>Email:</strong> {viewAssignee.email}</p>
-              <p><strong>Phone:</strong> {viewAssignee.phone || 'N/A'}</p>
-              <p><strong>Status:</strong> {viewAssignee.status}</p>
-               <p><strong>Interview:</strong> {viewAssignee.interview_id}</p>
-              {viewAssignee.notes && <p><strong>Notes:</strong> {viewAssignee.notes}</p>}
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-gray-500">Name</p>
+                <p className="font-medium">{viewAssignee.first_name} {viewAssignee.last_name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Email</p>
+                <p className="font-medium">{viewAssignee.email}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Phone</p>
+                <p className="font-medium">{viewAssignee.phone || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Status</p>
+                <Badge className={`${viewAssignee.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                  {viewAssignee.status}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Interview Assignment</p>
+                {viewAssignee.interview_id ? (
+                  <div className="flex items-center gap-2 mt-1">
+                    <Briefcase className="h-4 w-4 text-blue-600" />
+                    <p className="font-medium text-blue-600">
+                      {interviews.find(i => i.id === viewAssignee.interview_id)?.name || viewAssignee.interview_id}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="font-medium text-gray-500">No interview assigned</p>
+                )}
+              </div>
               {viewAssignee.assigned_at && (
-                <p><strong>Assigned at:</strong> {new Date(viewAssignee.assigned_at).toLocaleString()}</p>
+                <div>
+                  <p className="text-sm text-gray-500">Assigned at</p>
+                  <p className="font-medium">{new Date(viewAssignee.assigned_at).toLocaleString()}</p>
+                </div>
+              )}
+              {viewAssignee.notes && (
+                <div>
+                  <p className="text-sm text-gray-500">Notes</p>
+                  <p className="font-medium">{viewAssignee.notes}</p>
+                </div>
               )}
             </div>
           </DialogContent>

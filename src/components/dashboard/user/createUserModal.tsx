@@ -106,14 +106,20 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
     }
 
     if (mode === 'create') {
-      await addAssignee(updatedFormData);
+      // Convert empty interview_id to null for database constraint
+      const createData = {
+        ...updatedFormData,
+        interview_id: updatedFormData.interview_id || null
+      };
+      await addAssignee(createData);
     } else if (assignee) {
       const updateData: UpdateAssigneeRequest = {
         first_name: updatedFormData.first_name,
         last_name: updatedFormData.last_name,
         email: updatedFormData.email,
         phone: updatedFormData.phone,
-        interview_id: updatedFormData.interview_id,
+        // Convert empty string to null for database constraint
+        interview_id: updatedFormData.interview_id || null,
         avatar_url: updatedFormData.avatar_url,
         status: updatedFormData.status,
         notes: updatedFormData.notes
@@ -220,13 +226,14 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
             <div className="space-y-2">
               <Label htmlFor="interview_id">Interview</Label>
               <Select
-                value={formData.interview_id}
-                onValueChange={(value) => handleInputChange('interview_id', value)}
+                value={formData.interview_id || 'none'}
+                onValueChange={(value) => handleInputChange('interview_id', value === 'none' ? '' : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select interview" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">No Interview</SelectItem>
                   {useInterviews().interviews.map((interview: Interview) => (
                     <SelectItem key={interview.id} value={interview.id}>
                       {interview.name}

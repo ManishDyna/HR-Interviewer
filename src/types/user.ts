@@ -28,7 +28,7 @@ export interface InterviewAssignee {
   phone?: string;
   avatar_url?: string;
   organization_id: string;
-  interview_id?: string;
+  interview_id?: string | null;
   status: AssigneeStatus;
   assigned_by?: string;
   assigned_at?: string;
@@ -42,7 +42,7 @@ export interface CreateAssigneeRequest {
   phone?: string;
   avatar_url?: string;
   organization_id: string;
-  interview_id?: string;
+  interview_id?: string | null;
   status?: AssigneeStatus;
   notes?: string;
 }
@@ -53,7 +53,7 @@ export interface UpdateAssigneeRequest {
   email?: string;
   phone?: string;
   avatar_url?: string;
-  interview_id?: string;
+  interview_id?: string | null;
   status?: AssigneeStatus;
   notes?: string;
 }

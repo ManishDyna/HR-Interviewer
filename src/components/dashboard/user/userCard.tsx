@@ -6,8 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, Mail, Phone, Calendar, UserCheck, UserX } from 'lucide-react';
+import { MoreHorizontal, Mail, Phone, Calendar, UserCheck, UserX, Briefcase } from 'lucide-react';
 import { InterviewAssignee } from '@/types/user';
+import { Interview } from '@/types/interview';
 import { useAssignees } from '@/contexts/users.context';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -15,6 +16,7 @@ interface AssigneeCardProps {
   assignee: InterviewAssignee;
   onEdit: (assignee: InterviewAssignee) => void;
   onViewDetails: (assignee: InterviewAssignee) => void;
+  interviews?: Interview[];
 }
 
 const getStatusColor = (status: string) => {
@@ -34,9 +36,11 @@ const getInitials = (firstName: string, lastName: string) => {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 };
 
-export const AssigneeCard: React.FC<AssigneeCardProps> = ({ assignee, onEdit, onViewDetails }) => {
+export const AssigneeCard: React.FC<AssigneeCardProps> = ({ assignee, onEdit, onViewDetails, interviews = [] }) => {
   const { deleteAssignee, assignInterview, unassignInterview } = useAssignees();
   const { toast } = useToast();
+  
+  const assignedInterview = interviews.find(i => i.id === assignee.interview_id);
 
   const handleDelete = async () => {
     const success = await deleteAssignee(assignee.id);
@@ -164,6 +168,13 @@ return (
             </div>
           )}
         </div>
+
+        {assignedInterview && (
+          <div className="flex items-center text-xs text-blue-600 bg-blue-50 p-2 rounded">
+            <Briefcase className="mr-2 h-3 w-3" />
+            <span className="font-medium">{assignedInterview.name}</span>
+          </div>
+        )}
 
         {assignee.assigned_at && (
           <div className="flex items-center text-xs text-gray-500">

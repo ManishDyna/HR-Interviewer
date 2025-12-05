@@ -1,5 +1,6 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import { InterviewAssignee, CreateAssigneeRequest, UpdateAssigneeRequest, AssignInterviewRequest, UnassignInterviewRequest } from '@/types/user';
+import { nanoid } from 'nanoid';
+import { InterviewAssignee, CreateAssigneeRequest, UpdateAssigneeRequest, AssignInterviewRequest, UnassignInterviewRequest, ClientUser, UserRole, UserStatus } from '@/types/user';
 import { logger } from '@/lib/logger';
 
 const supabase = createClientComponentClient();
@@ -241,5 +242,220 @@ export const assigneeService = {
       logger.error('Error fetching unassigned assignees:', error instanceof Error ? error.message : String(error));
       throw error;
     }
+  }
+};
+
+// User Service for managing users in the "user" table
+export const createUser = async (
+  userData: {
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    avatar_url?: string;
+    organization_id: string;
+    role: UserRole;
+    status: UserStatus;
+  },
+  createdBy: string
+): Promise<ClientUser | null> => {
+  try {
+    const userId = nanoid(); // Generate unique ID
+    const { data, error } = await supabase
+      .from('user')
+      .insert([
+        {
+          id: userId, // Explicitly provide the ID
+          ...userData,
+          created_by: createdBy,
+        },
+      ])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    logger.error('Error creating user:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+};
+
+export const getUserByEmail = async (email: string): Promise<ClientUser | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('user')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error) {
+      // If no user found, return null instead of throwing
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    logger.error('Error fetching user by email:', error instanceof Error ? error.message : String(error));
+    return null;
+  }
+};
+
+export const getUserById = async (userId: string): Promise<ClientUser | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('user')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw error;
+    }
+    return data;
+  } catch (error) {
+    logger.error('Error fetching user by ID:', error instanceof Error ? error.message : String(error));
+    return null;
+  }
+};
+
+export const getAllUsers = async (organizationId: string): Promise<ClientUser[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('user')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    logger.error('Error fetching all users:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+};
+
+export const getUsersByRole = async (organizationId: string, role: string): Promise<ClientUser[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('user')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('role', role)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    logger.error('Error fetching users by role:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+};
+
+export const getUsersByStatus = async (organizationId: string, status: string): Promise<ClientUser[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('user')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .eq('status', status)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    logger.error('Error fetching users by status:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+};
+
+export const searchUsers = async (organizationId: string, searchTerm: string): Promise<ClientUser[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('user')
+      .select('*')
+      .eq('organization_id', organizationId)
+      .or(`email.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    logger.error('Error searching users:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+};
+
+export const updateUser = async (
+  userId: string,
+  updates: {
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    avatar_url?: string;
+    role?: UserRole;
+    status?: UserStatus;
+  }
+): Promise<ClientUser | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('user')
+      .update(updates)
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    logger.error('Error updating user:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+};
+
+export const deleteUser = async (userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('user')
+      .delete()
+      .eq('id', userId);
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    logger.error('Error deleting user:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
+};
+
+export const logUserActivity = async (
+  userId: string,
+  action: string,
+  resourceType: string,
+  resourceId: string,
+  details?: any
+): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('user_activity_log')
+      .insert([
+        {
+          user_id: userId,
+          action,
+          resource_type: resourceType,
+          resource_id: resourceId,
+          details,
+        },
+      ]);
+
+    if (error) throw error;
+  } catch (error) {
+    logger.error('Error logging user activity:', error instanceof Error ? error.message : String(error));
+    // Don't throw, just log the error - activity logging shouldn't break the main flow
   }
 };
