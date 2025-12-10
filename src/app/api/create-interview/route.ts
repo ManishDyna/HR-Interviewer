@@ -15,17 +15,17 @@ export async function POST(req: Request, res: Response) {
 
     const payload = body.interviewData;
 
+    // Remove organization_id from payload if it exists
+    const { organization_id, ...interviewPayload } = payload;
+
     let readableSlug = null;
-    if (body.organizationName) {
+    if (payload.name) {
       const interviewNameSlug = payload.name?.toLowerCase().replace(/\s/g, "-");
-      const orgNameSlug = body.organizationName
-        ?.toLowerCase()
-        .replace(/\s/g, "-");
-      readableSlug = `${orgNameSlug}-${interviewNameSlug}`;
+      readableSlug = interviewNameSlug;
     }
 
     const newInterview = await InterviewService.createInterview({
-      ...payload,
+      ...interviewPayload,
       url: url,
       id: url_id,
       readable_slug: readableSlug,

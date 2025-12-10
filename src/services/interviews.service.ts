@@ -2,12 +2,12 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 
 const supabase = createClientComponentClient();
 
-const getAllInterviews = async (userId: string, organizationId: string) => {
+const getAllInterviews = async (userId: string) => {
   try {
     const { data: clientData, error: clientError } = await supabase
       .from("interview")
       .select(`*`)
-      .or(`organization_id.eq.${organizationId},user_id.eq.${userId}`)
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     return [...(clientData || [])];
@@ -77,9 +77,12 @@ const getAllRespondents = async (interviewId: string) => {
 };
 
 const createInterview = async (payload: any) => {
+  // Remove organization_id from payload if it exists
+  const { organization_id, ...interviewPayload } = payload;
+  
   const { error, data } = await supabase
     .from("interview")
-    .insert({ ...payload });
+    .insert({ ...interviewPayload });
   if (error) {
     console.log(error);
 
@@ -89,13 +92,13 @@ const createInterview = async (payload: any) => {
   return data;
 };
 
-const deactivateInterviewsByOrgId = async (organizationId: string) => {
+const deactivateInterviewsByUserId = async (userId: string) => {
   try {
     const { error } = await supabase
       .from("interview")
       .update({ is_active: false })
-      .eq("organization_id", organizationId)
-      .eq("is_active", true); // Optional: only update if currently active
+      .eq("user_id", userId)
+      .eq("is_active", true);
 
     if (error) {
       console.error("Failed to deactivate interviews:", error);
@@ -112,5 +115,5 @@ export const InterviewService = {
   deleteInterview,
   getAllRespondents,
   createInterview,
-  deactivateInterviewsByOrgId,
+  deactivateInterviewsByOrgId: deactivateInterviewsByUserId, // Keep for backward compatibility
 };

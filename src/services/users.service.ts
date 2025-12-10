@@ -6,14 +6,21 @@ import { logger } from '@/lib/logger';
 const supabase = createClientComponentClient();
 
 export const assigneeService = {
-  // Get all assignees for an organization
-  async getAllAssignees(organizationId: string): Promise<InterviewAssignee[]> {
+  // Get all assignees - optionally filter by organization_id
+  async getAllAssignees(organizationId?: string | null): Promise<InterviewAssignee[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('interview_assignee')
         .select('*')
-        .eq('organization_id', organizationId)
         .order('created_at', { ascending: false });
+
+      // Only filter by organization_id if it's provided
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      }
+      // If no organization_id, get ALL assignees (don't filter)
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data || [];
@@ -40,18 +47,22 @@ export const assigneeService = {
     }
   },
 
-  // Get assignee by email
-  async getAssigneeByEmail(email: string, organizationId: string): Promise<InterviewAssignee | null> {
+  // Get assignee by email - optionally filter by organization_id
+  async getAssigneeByEmail(email: string, organizationId?: string | null): Promise<InterviewAssignee | null> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('interview_assignee')
         .select('*')
-        .eq('email', email)
-        .eq('organization_id', organizationId)
-        .single();
+        .eq('email', email);
 
-      if (error) throw error;
-      return data;
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      }
+
+      const { data, error } = await query.single();
+
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 means no rows found
+      return data || null;
     } catch (error) {
       logger.error('Error fetching assignee by email:', error instanceof Error ? error.message : String(error));
       throw error;
@@ -61,9 +72,23 @@ export const assigneeService = {
   // Create new assignee
   async createAssignee(assigneeData: CreateAssigneeRequest): Promise<InterviewAssignee> {
     try {
+      // Remove organization_id if it's an empty string
+      // Don't include applicant_id - let database trigger auto-generate it
+      const dataToInsert = {
+        ...assigneeData,
+        organization_id: assigneeData.organization_id || null,
+        applicant_id: undefined, // Let database auto-generate
+      };
+
+      // Remove applicant_id from dataToInsert if it's explicitly set to null/empty
+      // The database trigger will generate it automatically
+      if (dataToInsert.applicant_id === null || dataToInsert.applicant_id === '') {
+        delete (dataToInsert as any).applicant_id;
+      }
+
       const { data, error } = await supabase
         .from('interview_assignee')
-        .insert([assigneeData])
+        .insert([dataToInsert])
         .select()
         .single();
 
@@ -189,15 +214,21 @@ export const assigneeService = {
     }
   },
 
-  // Search assignees
-  async searchAssignees(organizationId: string, searchTerm: string): Promise<InterviewAssignee[]> {
+  // Search assignees - optionally filter by organization_id
+  async searchAssignees(organizationId: string | null | undefined, searchTerm: string): Promise<InterviewAssignee[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('interview_assignee')
         .select('*')
-        .eq('organization_id', organizationId)
         .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
         .order('created_at', { ascending: false });
+
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      }
+      // If no organization_id, get ALL matching assignees
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data || [];
@@ -207,15 +238,21 @@ export const assigneeService = {
     }
   },
 
-  // Get assignees by status
-  async getAssigneesByStatus(organizationId: string, status: 'active' | 'inactive' | 'pending'): Promise<InterviewAssignee[]> {
+  // Get assignees by status - optionally filter by organization_id
+  async getAssigneesByStatus(organizationId: string | null | undefined, status: 'active' | 'inactive' | 'pending'): Promise<InterviewAssignee[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('interview_assignee')
         .select('*')
-        .eq('organization_id', organizationId)
         .eq('status', status)
         .order('created_at', { ascending: false });
+
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      }
+      // If no organization_id, get ALL assignees with this status
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data || [];
@@ -225,16 +262,22 @@ export const assigneeService = {
     }
   },
 
-  // Get unassigned assignees (no interview_id)
-  async getUnassignedAssignees(organizationId: string): Promise<InterviewAssignee[]> {
+  // Get unassigned assignees (no interview_id) - optionally filter by organization_id
+  async getUnassignedAssignees(organizationId: string | null | undefined): Promise<InterviewAssignee[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('interview_assignee')
         .select('*')
-        .eq('organization_id', organizationId)
         .is('interview_id', null)
         .eq('status', 'active')
         .order('created_at', { ascending: false });
+
+      if (organizationId) {
+        query = query.eq('organization_id', organizationId);
+      }
+      // If no organization_id, get ALL unassigned assignees
+
+      const { data, error } = await query;
 
       if (error) throw error;
       return data || [];
@@ -242,7 +285,62 @@ export const assigneeService = {
       logger.error('Error fetching unassigned assignees:', error instanceof Error ? error.message : String(error));
       throw error;
     }
-  }
+  },
+
+  // Update assignee review status by email and interview_id
+  async updateAssigneeReviewStatus(
+    email: string,
+    interviewId: string,
+    reviewStatus: 'NO_STATUS' | 'NOT_SELECTED' | 'POTENTIAL' | 'SELECTED'
+  ): Promise<InterviewAssignee | null> {
+    try {
+      const { data, error } = await supabase
+        .from('interview_assignee')
+        .update({ review_status: reviewStatus })
+        .eq('email', email)
+        .eq('interview_id', interviewId)
+        .select()
+        .single();
+
+      if (error) {
+        // If no assignee found, that's okay - just return null
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      logger.error('Error updating assignee review status:', error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  },
+
+  // Get assignee by email and interview_id
+  async getAssigneeByEmailAndInterview(
+    email: string,
+    interviewId: string
+  ): Promise<InterviewAssignee | null> {
+    try {
+      const { data, error } = await supabase
+        .from('interview_assignee')
+        .select('*')
+        .eq('email', email)
+        .eq('interview_id', interviewId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        throw error;
+      }
+      return data;
+    } catch (error) {
+      logger.error('Error getting assignee by email and interview:', error instanceof Error ? error.message : String(error));
+      return null;
+    }
+  },
 };
 
 // User Service for managing users in the "user" table

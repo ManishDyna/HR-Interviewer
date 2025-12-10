@@ -20,17 +20,13 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search');
     const status = searchParams.get('status') as 'active' | 'inactive' | 'pending' | null;
 
-    if (!organizationId) {
-      return NextResponse.json({ error: 'Organization ID is required' }, { status: 400 });
-    }
-
     let assignees;
     if (search) {
-      assignees = await assigneeService.searchAssignees(organizationId, search);
+      assignees = await assigneeService.searchAssignees(organizationId || undefined, search);
     } else if (status) {
-      assignees = await assigneeService.getAssigneesByStatus(organizationId, status);
+      assignees = await assigneeService.getAssigneesByStatus(organizationId || undefined, status);
     } else {
-      assignees = await assigneeService.getAllAssignees(organizationId);
+      assignees = await assigneeService.getAllAssignees(organizationId || undefined);
     }
 
     return NextResponse.json(assignees);
@@ -55,19 +51,19 @@ export async function POST(request: NextRequest) {
 
     const body: CreateAssigneeRequest = await request.json();
     
-    // Validate required fields
-    if (!body.first_name || !body.last_name || !body.email || !body.organization_id) {
+    // Validate required fields (organization_id is now optional)
+    if (!body.first_name || !body.last_name || !body.email) {
       return NextResponse.json(
-        { error: 'First name, last name, email, and organization ID are required' },
+        { error: 'First name, last name, and email are required' },
         { status: 400 }
       );
     }
 
-    // Check if assignee already exists with this email in the organization
-    const existingAssignee = await assigneeService.getAssigneeByEmail(body.email, body.organization_id);
+    // Check if assignee already exists with this email
+    const existingAssignee = await assigneeService.getAssigneeByEmail(body.email, body.organization_id || undefined);
     if (existingAssignee) {
       return NextResponse.json(
-        { error: 'An assignee with this email already exists in this organization' },
+        { error: 'An assignee with this email already exists' },
         { status: 409 }
       );
     }

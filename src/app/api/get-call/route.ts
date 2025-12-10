@@ -13,11 +13,12 @@ export async function POST(req: Request, res: Response) {
   logger.info("get-call request received");
   const body = await req.json();
 
-  const callDetails: Response = await ResponseService.getResponseByCallId(
+  const callDetails: Response | null = await ResponseService.getResponseByCallId(
     body.id,
   );
-  let callResponse = callDetails.details;
-  if (callDetails.is_analysed) {
+  
+  if (callDetails && callDetails.is_analysed) {
+    let callResponse = callDetails.details;
     return NextResponse.json(
       {
         callResponse,
@@ -28,7 +29,7 @@ export async function POST(req: Request, res: Response) {
   }
   const callOutput = await retell.call.retrieve(body.id);
   const interviewId = callDetails?.interview_id;
-  callResponse = callOutput;
+  let callResponse = callOutput;
   const duration = Math.round(
     callResponse.end_timestamp / 1000 - callResponse.start_timestamp / 1000,
   );

@@ -5,7 +5,7 @@ import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/navbar";
 import Providers from "@/components/providers";
-import { ClerkProvider } from "@clerk/nextjs";
+import { AuthProvider } from "@/contexts/auth.context";
 import { Toaster } from "@/components/ui/toaster";
 import SideMenu from "@/components/sideMenu";
 import { NavigationLoader } from "@/components/NavigationLoader";
@@ -53,10 +53,7 @@ export default function RootLayout({
           "antialiased overflow-hidden min-h-screen",
         )}
       >
-        <ClerkProvider
-          signInFallbackRedirectUrl={"/dashboard"}
-          afterSignOutUrl={"/sign-in"}
-        >
+        <AuthProvider>
           <Providers>
             <NavigationLoader />
             {!pathname.includes("/sign-in") &&
@@ -71,7 +68,7 @@ export default function RootLayout({
             <TestLoaderButton />
             <Toaster />
           </Providers>
-        </ClerkProvider>
+        </AuthProvider>
       </body>
     </html>
   );

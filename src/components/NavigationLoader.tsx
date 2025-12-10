@@ -6,6 +6,7 @@ import { useLoading } from '@/contexts/loading.context';
 import { useInterviews } from '@/contexts/interviews.context';
 import { useAssignees } from '@/contexts/users.context';
 import { useInterviewers } from '@/contexts/interviewers.context';
+import { useAuth } from '@/contexts/auth.context';
 
 const MIN_LOADER_DISPLAY_TIME = 500; // Minimum time to show loader (ms)
 
@@ -13,6 +14,7 @@ export function NavigationLoader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { isLoading, stopLoading } = useLoading();
+  const { isLoading: authLoading } = useAuth();
   
   // Get loading states from all contexts
   const { interviewsLoading } = useInterviews();
@@ -49,6 +51,11 @@ export function NavigationLoader() {
 
   // Stop loading once all data is loaded AND minimum time has passed
   useEffect(() => {
+    // Don't check data loading if auth is still loading
+    if (authLoading) {
+      return;
+    }
+
     const isDataLoading = interviewsLoading || assigneesLoading || interviewersLoading;
     
     if (isLoading && !isDataLoading && canStopLoading) {
@@ -58,8 +65,7 @@ export function NavigationLoader() {
       }, 100);
       return () => clearTimeout(timeout);
     }
-  }, [isLoading, interviewsLoading, assigneesLoading, interviewersLoading, stopLoading, canStopLoading]);
+  }, [isLoading, interviewsLoading, assigneesLoading, interviewersLoading, stopLoading, canStopLoading, authLoading]);
 
   return null;
 }
-

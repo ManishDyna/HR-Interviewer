@@ -5,7 +5,7 @@ import { Analytics, CallData } from "@/types/response";
 import axios from "axios";
 import { ScrollArea } from "@radix-ui/react-scroll-area";
 import ReactAudioPlayer from "react-audio-player";
-import { DownloadIcon, TrashIcon } from "lucide-react";
+import { DownloadIcon, TrashIcon, Clock, AlertTriangle, Video, Users, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ResponseService } from "@/services/responses.service";
@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { CandidateStatus } from "@/lib/enum";
 import { ArrowLeft } from "lucide-react";
+import { assigneeService } from "@/services/users.service";
 
 type CallProps = {
   call_id: string;
@@ -59,6 +60,7 @@ function CallInfo({
   const [candidateStatus, setCandidateStatus] = useState<string>("");
   const [interviewId, setInterviewId] = useState<string>("");
   const [tabSwitchCount, setTabSwitchCount] = useState<number>();
+  const [responseData, setResponseData] = useState<any>(null);
 
   useEffect(() => {
     const fetchResponses = async () => {
@@ -92,6 +94,7 @@ function CallInfo({
         setCandidateStatus(response.candidate_status);
         setInterviewId(response.interview_id);
         setTabSwitchCount(response.tab_switch_count);
+        setResponseData(response);
       } catch (error) {
         console.error(error);
       } finally {
@@ -162,11 +165,84 @@ function CallInfo({
         </div>
       ) : (
         <>
+          {/* Interview Information Block */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 mb-4 border border-indigo-200 shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Duration */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <Clock className="h-5 w-5 text-indigo-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 font-medium">Interview Duration</p>
+                    <p className="text-lg font-bold text-gray-900">
+                      {responseData?.duration 
+                        ? `${Math.floor(responseData.duration / 60)}m ${responseData.duration % 60}s`
+                        : call?.start_timestamp && call?.end_timestamp
+                        ? `${Math.floor((call.end_timestamp - call.start_timestamp) / 60000)}m ${Math.floor(((call.end_timestamp - call.start_timestamp) % 60000) / 1000)}s`
+                        : 'N/A'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tab Switching */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${tabSwitchCount && tabSwitchCount > 0 ? 'bg-red-100' : 'bg-green-100'}`}>
+                    <AlertTriangle className={`h-5 w-5 ${tabSwitchCount && tabSwitchCount > 0 ? 'text-red-600' : 'text-green-600'}`} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 font-medium">Tab Switching</p>
+                    <p className={`text-lg font-bold ${tabSwitchCount && tabSwitchCount > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {tabSwitchCount && tabSwitchCount > 0 ? `${tabSwitchCount} detected` : 'No issues'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Video Status */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${call?.disconnection_reason ? 'bg-yellow-100' : 'bg-green-100'}`}>
+                    <Video className={`h-5 w-5 ${call?.disconnection_reason ? 'text-yellow-600' : 'text-green-600'}`} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 font-medium">Video/Audio Status</p>
+                    <p className={`text-lg font-bold ${call?.disconnection_reason ? 'text-yellow-600' : 'text-green-600'}`}>
+                      {call?.disconnection_reason ? 'Issues detected' : 'Normal'}
+                    </p>
+                    {call?.disconnection_reason && (
+                      <p className="text-xs text-gray-500 mt-1 truncate">{call.disconnection_reason}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Voice Detection */}
+              <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <Users className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs text-gray-500 font-medium">Voice Detection</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {call?.transcript_object && call.transcript_object.length > 0 
+                        ? call.transcript_object.filter((t: any) => t.role === 'user').length > 0 
+                          ? 'Single person detected' 
+                          : 'No voice detected'
+                        : 'Normal'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="bg-slate-200 rounded-2xl min-h-[120px] p-4 px-5 y-3">
             <div className="flex flex-col justify-between bt-2">
-              {/* <p className="font-semibold my-2 ml-2">
-                Response Analysis and Insights
-              </p> */}
               <div>
                 <div className="flex justify-between items-center pb-4 pr-2">
                   <div
@@ -178,11 +254,6 @@ function CallInfo({
                     <ArrowLeft className="mr-2" />
                     <p className="text-sm font-semibold">Back to Summary</p>
                   </div>
-                  {tabSwitchCount && tabSwitchCount > 0 && (
-                    <p className="text-sm font-semibold text-red-500 bg-red-200 rounded-sm px-2 py-1">
-                      Tab Switching Detected
-                    </p>
-                  )}
                 </div>
               </div>
               <div className="flex flex-col justify-between gap-3 w-full">
@@ -208,6 +279,24 @@ function CallInfo({
                           call_id,
                         );
                         onCandidateStatusChange(call_id, newValue);
+                        
+                        // Sync review_status with candidate_status in assignee table
+                        if (email && interviewId) {
+                          try {
+                            await assigneeService.updateAssigneeReviewStatus(
+                              email,
+                              interviewId,
+                              newValue as 'NO_STATUS' | 'NOT_SELECTED' | 'POTENTIAL' | 'SELECTED'
+                            );
+                            // Dispatch event to notify other pages to refresh assignees
+                            window.dispatchEvent(new CustomEvent('assigneeReviewStatusUpdated', {
+                              detail: { email, interviewId, reviewStatus: newValue }
+                            }));
+                          } catch (error) {
+                            console.error('Error syncing review status:', error);
+                            // Don't show error to user - this is a background sync
+                          }
+                        }
                       }}
                     >
                       <SelectTrigger className="w-[180px]  bg-slate-50 rounded-2xl">

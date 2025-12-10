@@ -3,7 +3,7 @@
 import React, { useState, useContext, ReactNode, useEffect } from "react";
 import { Interview } from "@/types/interview";
 import { InterviewService } from "@/services/interviews.service";
-import { useClerk, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/auth.context";
 
 interface InterviewContextProps {
   interviews: Interview[];
@@ -29,37 +29,47 @@ interface InterviewProviderProps {
 
 export function InterviewProvider({ children }: InterviewProviderProps) {
   const [interviews, setInterviews] = useState<Interview[]>([]);
-  const { user } = useClerk();
-  const { organization } = useOrganization();
+  const { user, isLoading: authLoading } = useAuth();
   const [interviewsLoading, setInterviewsLoading] = useState(true);
 
   const fetchInterviews = async () => {
+    if (!user?.id) {
+      setInterviewsLoading(false);
+      return;
+    }
+
     try {
       setInterviewsLoading(true);
-      const response = await InterviewService.getAllInterviews(
-        user?.id as string,
-        organization?.id as string,
-      );
-      setInterviewsLoading(false);
+      const response = await InterviewService.getAllInterviews(user.id);
       setInterviews(response);
     } catch (error) {
       console.error(error);
+    } finally {
+      setInterviewsLoading(false);
     }
-    setInterviewsLoading(false);
   };
 
   const getInterviewById = async (interviewId: string) => {
     const response = await InterviewService.getInterviewById(interviewId);
-
     return response;
   };
 
   useEffect(() => {
-    if (organization?.id || user?.id) {
-      fetchInterviews();
+    // Wait for auth to finish loading
+    if (authLoading) {
+      return;
     }
+
+    // If no user, stop loading
+    if (!user?.id) {
+      setInterviewsLoading(false);
+      return;
+    }
+
+    // Fetch interviews if user is available
+    fetchInterviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organization?.id, user?.id]);
+  }, [user?.id, authLoading]);
 
   return (
     <InterviewContext.Provider
@@ -79,6 +89,5 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
 
 export const useInterviews = () => {
   const value = useContext(InterviewContext);
-
   return value;
 };

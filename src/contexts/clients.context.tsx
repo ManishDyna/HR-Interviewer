@@ -2,7 +2,7 @@
 
 import React, { useState, useContext, ReactNode, useEffect } from "react";
 import { ClientUser } from "@/types/user";
-import { useClerk, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/auth.context";
 import { ClientService } from "@/services/clients.service";
 
 interface ClientContextProps {
@@ -19,8 +19,7 @@ interface ClientProviderProps {
 
 export function ClientProvider({ children }: ClientProviderProps) {
   const [client, setClient] = useState<ClientUser>();
-  const { user } = useClerk();
-  const { organization } = useOrganization();
+  const { user } = useAuth();
 
   const [clientLoading, setClientLoading] = useState(true);
 
@@ -29,8 +28,8 @@ export function ClientProvider({ children }: ClientProviderProps) {
       setClientLoading(true);
       const response = await ClientService.getClientById(
         user?.id as string,
-        user?.emailAddresses[0]?.emailAddress as string,
-        organization?.id as string,
+        user?.email as string,
+        user?.organization_id as string,
       );
       setClient(response);
     } catch (error) {
@@ -40,12 +39,10 @@ export function ClientProvider({ children }: ClientProviderProps) {
   };
 
   const fetchOrganization = async () => {
+    if (!user?.organization_id) return;
     try {
       setClientLoading(true);
-      const response = await ClientService.getOrganizationById(
-        organization?.id as string,
-        organization?.name as string,
-      );
+      await ClientService.getOrganizationById(user.organization_id);
     } catch (error) {
       console.error(error);
     }
@@ -60,11 +57,11 @@ export function ClientProvider({ children }: ClientProviderProps) {
   }, [user?.id]);
 
   useEffect(() => {
-    if (organization?.id) {
+    if (user?.organization_id) {
       fetchOrganization();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organization?.id]);
+  }, [user?.organization_id]);
 
   return (
     <ClientContext.Provider

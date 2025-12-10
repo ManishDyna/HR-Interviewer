@@ -1,6 +1,7 @@
 export type AssigneeStatus = 'active' | 'inactive' | 'pending';
 export type UserRole = 'admin' | 'manager' | 'interviewer' | 'viewer';
 export type UserStatus = 'active' | 'inactive' | 'pending' | 'suspended';
+export type ReviewStatus = 'NO_STATUS' | 'NOT_SELECTED' | 'POTENTIAL' | 'SELECTED';
 
 export interface ClientUser {
   id: string;
@@ -27,12 +28,15 @@ export interface InterviewAssignee {
   email: string;
   phone?: string;
   avatar_url?: string;
-  organization_id: string;
+  organization_id?: string | null;
   interview_id?: string | null;
   status: AssigneeStatus;
   assigned_by?: string;
   assigned_at?: string;
   notes?: string;
+  tag?: string | null;
+  applicant_id?: string | null;
+  review_status?: ReviewStatus | null;
 }
 
 export interface CreateAssigneeRequest {
@@ -41,10 +45,13 @@ export interface CreateAssigneeRequest {
   email: string;
   phone?: string;
   avatar_url?: string;
-  organization_id: string;
+  organization_id?: string | null;
   interview_id?: string | null;
   status?: AssigneeStatus;
   notes?: string;
+  tag?: string | null;
+  applicant_id?: string | null;
+  review_status?: ReviewStatus | null;
 }
 
 export interface UpdateAssigneeRequest {
@@ -56,6 +63,9 @@ export interface UpdateAssigneeRequest {
   interview_id?: string | null;
   status?: AssigneeStatus;
   notes?: string;
+  tag?: string | null;
+  applicant_id?: string | null;
+  review_status?: ReviewStatus | null;
 }
 
 export interface AssignInterviewRequest {

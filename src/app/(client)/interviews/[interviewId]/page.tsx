@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import React, { useState, useEffect } from "react";
-import { useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/auth.context";
 import { useInterviews } from "@/contexts/interviews.context";
-import { Share2, Filter, Pencil, UserIcon, Eye, Palette } from "lucide-react";
+import { Share2, Filter, Pencil, UserIcon, Eye, Palette, X } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter } from "next/navigation";
 import { ResponseService } from "@/services/responses.service";
@@ -45,6 +45,7 @@ interface Props {
   searchParams: {
     call: string;
     edit: boolean;
+    email?: string;
   };
 }
 
@@ -65,7 +66,7 @@ function InterviewHome({ params, searchParams }: Props) {
   const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
   const [themeColor, setThemeColor] = useState<string>("#4F46E5");
   const [iconColor, seticonColor] = useState<string>("#4F46E5");
-  const { organization } = useOrganization();
+  const { user } = useAuth();
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
 
   const seeInterviewPreviewPage = () => {
@@ -105,22 +106,6 @@ function InterviewHome({ params, searchParams }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getInterviewById, params.interviewId, isGeneratingInsights]);
 
-  useEffect(() => {
-    const fetchOrganizationData = async () => {
-      try {
-        if (organization?.id) {
-          const data = await ClientService.getOrganizationById(organization.id);
-          if (data?.plan) {
-            setCurrentPlan(data.plan);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching organization data:", error);
-      }
-    };
-
-    fetchOrganizationData();
-  }, [organization]);
   useEffect(() => {
     const fetchResponses = async () => {
       try {
@@ -246,11 +231,22 @@ function InterviewHome({ params, searchParams }: Props) {
     if (!responses) {
       return [];
     }
+    
+    let filtered = responses;
+    
+    // Filter by email if provided in searchParams
+    if (searchParams.email) {
+      filtered = filtered.filter(
+        (response) => response?.email?.toLowerCase() === searchParams.email?.toLowerCase()
+      );
+    }
+    
+    // Filter by status
     if (filterStatus == "ALL") {
-      return responses;
+      return filtered;
     }
 
-    return responses?.filter(
+    return filtered?.filter(
       (response) => response?.candidate_status == filterStatus,
     );
   };
@@ -273,8 +269,32 @@ function InterviewHome({ params, searchParams }: Props) {
 
             <div className="flex flex-row gap-3 my-auto">
               <UserIcon className="my-auto" size={16} />:{" "}
-              {String(responses?.length)}
+              {String(searchParams.email ? filterResponses().length : responses?.length)}
+              {searchParams.email && (
+                <span className="text-xs text-gray-500">
+                  (of {responses?.length || 0} total)
+                </span>
+              )}
             </div>
+            
+            {searchParams.email && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-md">
+                <span className="text-xs text-blue-700 font-medium">
+                  Viewing: <strong className="text-blue-900">{searchParams.email}</strong>
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 w-5 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                  onClick={() => {
+                    router.push(`/interviews/${params.interviewId}`);
+                  }}
+                  title="Show all responses"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            )}
 
             <TooltipProvider>
               <Tooltip>
@@ -404,7 +424,8 @@ function InterviewHome({ params, searchParams }: Props) {
             </label>
           </div>
           <div className="flex flex-row w-full p-2 h-[85%] gap-1 ">
-            <div className="w-[20%] flex flex-col p-2 divide-y-2 rounded-sm border-2 border-slate-100">
+            {!searchParams.call && (
+              <div className="w-[20%] flex flex-col p-2 divide-y-2 rounded-sm border-2 border-slate-100">
               <div className="flex w-full justify-center py-2">
                 <Select
                   onValueChange={async (newValue: string) => {
@@ -539,9 +560,10 @@ function InterviewHome({ params, searchParams }: Props) {
                   </p>
                 )}
               </ScrollArea>
-            </div>
+              </div>
+            )}
             {responses && (
-              <div className="w-[85%] rounded-md ">
+              <div className={searchParams.call ? "w-full rounded-md" : "w-[85%] rounded-md"}>
                 {searchParams.call ? (
                   <CallInfo
                     call_id={searchParams.call}

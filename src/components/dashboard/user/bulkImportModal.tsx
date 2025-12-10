@@ -31,7 +31,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { useOrganization } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/auth.context';
 import { useLoading } from '@/contexts/loading.context';
 
 interface BulkImportModalProps {
@@ -73,7 +73,8 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-  const { organization } = useOrganization();
+  const { user } = useAuth();
+  const organizationId = user?.organization_id;
   const { startLoading, stopLoading } = useLoading();
 
   const handleClose = () => {
@@ -188,7 +189,7 @@ bob.johnson@example.com,Bob,Johnson,+1122334455,pending,Needs verification`;
   };
 
   const handleImport = async () => {
-    if (!organization?.id) {
+    if (!organizationId) {
       toast({
         title: 'Error',
         description: 'Organization not found.',
@@ -221,7 +222,7 @@ bob.johnson@example.com,Bob,Johnson,+1122334455,pending,Needs verification`;
         credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           users: parsedData,
-          organization_id: organization.id,
+          organization_id: organizationId,
           // Don't send created_by - let it be NULL for bulk imports without auth
         }),
       });

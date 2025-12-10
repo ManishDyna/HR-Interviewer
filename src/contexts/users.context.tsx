@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useOrganization } from '@clerk/nextjs';
+import { useAuth } from '@/contexts/auth.context';
 import { InterviewAssignee, CreateAssigneeRequest, UpdateAssigneeRequest, AssignInterviewRequest, UnassignInterviewRequest } from '@/types/user';
 import { assigneeService } from '@/services/users.service';
 import { useToast } from '@/components/ui/use-toast';
@@ -37,15 +37,16 @@ interface AssigneesProviderProps {
 export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }) => {
   const [assignees, setAssignees] = useState<InterviewAssignee[]>([]);
   const [assigneesLoading, setAssigneesLoading] = useState(true);
-  const { organization } = useOrganization();
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
+  const organizationId = user?.organization_id;
+
   const refreshAssignees = async () => {
-    if (!organization?.id) return;
-    
     try {
       setAssigneesLoading(true);
-      const data = await assigneeService.getAllAssignees(organization.id);
+      // Pass organizationId (which can be undefined/null) - service will handle it
+      const data = await assigneeService.getAllAssignees(organizationId);
       setAssignees(data);
     } catch (error) {
       console.error('Error refreshing assignees:', error);
@@ -60,12 +61,11 @@ export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }
   };
 
   const addAssignee = async (assigneeData: CreateAssigneeRequest): Promise<InterviewAssignee | null> => {
-    if (!organization?.id) return null;
-    
     try {
+      // Include organization_id if available, otherwise it will be null
       const newAssignee = await assigneeService.createAssignee({
         ...assigneeData,
-        organization_id: organization.id,
+        organization_id: assigneeData.organization_id || organizationId || null,
       });
       
       setAssignees(prev => [newAssignee, ...prev]);
@@ -193,10 +193,8 @@ export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }
   };
 
   const searchAssignees = async (searchTerm: string): Promise<InterviewAssignee[]> => {
-    if (!organization?.id) return [];
-    
     try {
-      return await assigneeService.searchAssignees(organization.id, searchTerm);
+      return await assigneeService.searchAssignees(organizationId, searchTerm);
     } catch (error) {
       console.error('Error searching assignees:', error);
       return [];
@@ -204,10 +202,8 @@ export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }
   };
 
   const getAssigneesByStatus = async (status: 'active' | 'inactive' | 'pending'): Promise<InterviewAssignee[]> => {
-    if (!organization?.id) return [];
-    
     try {
-      return await assigneeService.getAssigneesByStatus(organization.id, status);
+      return await assigneeService.getAssigneesByStatus(organizationId, status);
     } catch (error) {
       console.error('Error getting assignees by status:', error);
       return [];
@@ -215,10 +211,8 @@ export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }
   };
 
   const getUnassignedAssignees = async (): Promise<InterviewAssignee[]> => {
-    if (!organization?.id) return [];
-    
     try {
-      return await assigneeService.getUnassignedAssignees(organization.id);
+      return await assigneeService.getUnassignedAssignees(organizationId);
     } catch (error) {
       console.error('Error getting unassigned assignees:', error);
       return [];
@@ -226,10 +220,15 @@ export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }
   };
 
   useEffect(() => {
-    if (organization?.id) {
-      refreshAssignees();
+    // Wait for auth to finish loading
+    if (authLoading) {
+      return;
     }
-  }, [organization?.id]);
+
+    // Fetch assignees regardless of organization_id
+    refreshAssignees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [organizationId, authLoading]);
 
   const value: AssigneesContextType = {
     assignees,

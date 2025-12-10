@@ -33,8 +33,8 @@ const VideoRecorder = forwardRef<VideoRecorderHandle, VideoRecorderProps>(({
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: {
-            width: { ideal: 640 },
-            height: { ideal: 480 },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
             facingMode: "user"
           } 
         });
@@ -78,7 +78,7 @@ const VideoRecorder = forwardRef<VideoRecorderHandle, VideoRecorderProps>(({
         autoPlay
         muted
         playsInline
-        className="w-36 h-28 lg:w-44 lg:h-32 object-cover rounded-lg"
+        className="w-64 h-48 sm:w-80 sm:h-60 lg:w-96 lg:h-72 xl:w-[28rem] xl:h-[21rem] object-cover rounded-lg"
         style={{ background: "#1a1a2e", transform: "scaleX(-1)" }}
       />
       {recording && (

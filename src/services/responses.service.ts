@@ -49,65 +49,77 @@ const getAllResponses = async (interviewId: string) => {
   }
 };
 
-const getResponseCountByOrganizationId = async (
-  organizationId: string,
+const getAllEmails = async (interviewId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("response")
+      .select("email")
+      .eq("interview_id", interviewId)
+      .not("email", "is", null);
+
+    if (error) {
+      console.error("Error fetching emails:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Unexpected error fetching emails:", error);
+    return [];
+  }
+};
+
+const getResponseCountByUserId = async (
+  userId: string,
 ): Promise<number> => {
   try {
-    const { count, error } = await supabase
+    // Get all interviews for this user, then count their responses
+    const { data: interviews, error: interviewsError } = await supabase
       .from("interview")
-      .select("response(id)", { count: "exact", head: true }) // join + count
-      .eq("organization_id", organizationId);
+      .select("id")
+      .eq("user_id", userId);
 
-    return count ?? 0;
+    if (interviewsError || !interviews) {
+      return 0;
+    }
+
+    const interviewIds = interviews.map((i) => i.id);
+    
+    const { count, error } = await supabase
+      .from("response")
+      .select("*", { count: "exact", head: true })
+      .in("interview_id", interviewIds);
+
+    if (error) {
+      console.error("Error counting responses:", error);
+      return 0;
+    }
+
+    return count || 0;
   } catch (error) {
-    console.log(error);
-
+    console.error("Unexpected error counting responses:", error);
     return 0;
   }
 };
 
-const getAllEmailAddressesForInterview = async (interviewId: string) => {
+const getResponseByCallId = async (callId: string) => {
   try {
     const { data, error } = await supabase
       .from("response")
-      .select(`email`)
-      .eq("interview_id", interviewId);
+      .select("*")
+      .eq("call_id", callId)
+      .single();
 
-    return data || [];
+    if (error) {
+      console.error("Error fetching response by call_id:", error);
+      return null;
+    }
+
+    return data;
   } catch (error) {
-    console.log(error);
-
-    return [];
+    console.error("Unexpected error fetching response by call_id:", error);
+    return null;
   }
-};
-
-const getResponseByCallId = async (id: string) => {
-  try {
-    const { data, error } = await supabase
-      .from("response")
-      .select(`*`)
-      .filter("call_id", "eq", id);
-
-    return data ? data[0] : null;
-  } catch (error) {
-    console.log(error);
-
-    return [];
-  }
-};
-
-const deleteResponse = async (id: string) => {
-  const { error, data } = await supabase
-    .from("response")
-    .delete()
-    .eq("call_id", id);
-  if (error) {
-    console.log(error);
-
-    return [];
-  }
-
-  return data;
 };
 
 const updateResponse = async (payload: any, call_id: string) => {
@@ -115,10 +127,10 @@ const updateResponse = async (payload: any, call_id: string) => {
     .from("response")
     .update({ ...payload })
     .eq("call_id", call_id);
+  
   if (error) {
-    console.log(error);
-
-    return [];
+    console.error("Error updating response:", error);
+    return null;
   }
 
   return data;
@@ -127,10 +139,11 @@ const updateResponse = async (payload: any, call_id: string) => {
 export const ResponseService = {
   createResponse,
   saveResponse,
-  updateResponse,
   getAllResponses,
+  getAllEmails,
+  getResponseCountByUserId,
   getResponseByCallId,
-  deleteResponse,
-  getResponseCountByOrganizationId,
-  getAllEmails: getAllEmailAddressesForInterview,
+  updateResponse,
+  // Keep old method name for backward compatibility
+  getResponseCountByOrganizationId: getResponseCountByUserId,
 };

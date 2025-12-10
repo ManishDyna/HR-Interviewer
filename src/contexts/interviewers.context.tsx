@@ -3,7 +3,7 @@
 import React, { useState, useContext, ReactNode, useEffect } from "react";
 import { Interviewer } from "@/types/interviewer";
 import { InterviewerService } from "@/services/interviewers.service";
-import { useClerk } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/auth.context";
 
 interface InterviewerContextProps {
   interviewers: Interviewer[];
@@ -27,20 +27,24 @@ interface InterviewerProviderProps {
 
 export function InterviewerProvider({ children }: InterviewerProviderProps) {
   const [interviewers, setInterviewers] = useState<Interviewer[]>([]);
-  const { user } = useClerk();
+  const { user, isLoading: authLoading } = useAuth();
   const [interviewersLoading, setInterviewersLoading] = useState(true);
 
   const fetchInterviewers = async () => {
+    if (!user?.id) {
+      setInterviewersLoading(false);
+      return;
+    }
+
     try {
       setInterviewersLoading(true);
-      const response = await InterviewerService.getAllInterviewers(
-        user?.id as string,
-      );
+      const response = await InterviewerService.getAllInterviewers(user.id);
       setInterviewers(response);
     } catch (error) {
       console.error(error);
+    } finally {
+      setInterviewersLoading(false);
     }
-    setInterviewersLoading(false);
   };
 
   const createInterviewer = async (payload: any) => {
@@ -49,11 +53,21 @@ export function InterviewerProvider({ children }: InterviewerProviderProps) {
   };
 
   useEffect(() => {
-    if (user?.id) {
-      fetchInterviewers();
+    // Wait for auth to finish loading
+    if (authLoading) {
+      return;
     }
+
+    // If no user, stop loading
+    if (!user?.id) {
+      setInterviewersLoading(false);
+      return;
+    }
+
+    // Fetch interviewers if user is available
+    fetchInterviewers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [user?.id, authLoading]);
 
   return (
     <InterviewerContext.Provider
@@ -72,6 +86,5 @@ export function InterviewerProvider({ children }: InterviewerProviderProps) {
 
 export const useInterviewers = () => {
   const value = useContext(InterviewerContext);
-
   return value;
 };

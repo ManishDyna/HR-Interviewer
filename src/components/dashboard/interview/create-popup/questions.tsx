@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { v4 as uuidv4 } from "uuid";
-import { useClerk, useOrganization } from "@clerk/nextjs";
+import { useAuth } from "@/contexts/auth.context";
 import { InterviewBase, Question } from "@/types/interview";
 import { useInterviews } from "@/contexts/interviews.context";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -9,6 +9,7 @@ import QuestionCard from "@/components/dashboard/interview/create-popup/question
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { ChevronLeft } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Props {
   interviewData: InterviewBase;
@@ -17,8 +18,7 @@ interface Props {
 }
 
 function QuestionsPopup({ interviewData, setProceed, setOpen }: Props) {
-  const { user } = useClerk();
-  const { organization } = useOrganization();
+  const { user } = useAuth();
   const [isClicked, setIsClicked] = useState(false);
 
   const [questions, setQuestions] = useState<Question[]>(
@@ -65,9 +65,9 @@ function QuestionsPopup({ interviewData, setProceed, setOpen }: Props) {
   };
 
   const onSave = async () => {
+    setIsClicked(true);
     try {
       interviewData.user_id = user?.id || "";
-      interviewData.organization_id = organization?.id || "";
 
       interviewData.questions = questions;
       interviewData.description = description;
@@ -77,11 +77,14 @@ function QuestionsPopup({ interviewData, setProceed, setOpen }: Props) {
         ...interviewData,
         interviewer_id: interviewData.interviewer_id.toString(),
         response_count: interviewData.response_count.toString(),
-        logo_url: organization?.imageUrl || "",
+        logo_url: user?.avatar_url || "",
       };
 
+      // Remove organization_id if it exists
+      delete sanitizedInterviewData.organization_id;
+
       const response = await axios.post("/api/create-interview", {
-        organizationName: organization?.name,
+        organizationName: "",
         interviewData: sanitizedInterviewData,
       });
       setIsClicked(false);
@@ -89,6 +92,7 @@ function QuestionsPopup({ interviewData, setProceed, setOpen }: Props) {
       setOpen(false);
     } catch (error) {
       console.error("Error creating interview:", error);
+      setIsClicked(false);
     }
   };
 
@@ -100,92 +104,69 @@ function QuestionsPopup({ interviewData, setProceed, setOpen }: Props) {
   }, [questions.length]);
 
   return (
-    <div>
-      <div
-        className={`text-center px-1 flex flex-col justify-top items-center w-[38rem] ${
-          interviewData.question_count > 1 ? "h-[29rem]" : ""
-        } `}
-      >
-        <div className="relative flex justify-center w-full">
-          <ChevronLeft
-            className="absolute left-0 opacity-50 cursor-pointer hover:opacity-100 text-gray-600 mr-36"
-            size={30}
-            onClick={() => {
-              setProceed(false);
-            }}
-          />
-          <h1 className="text-2xl font-semibold">Create Interview</h1>
-        </div>
-        <div className="my-3 text-left w-[96%] text-sm">
-          We will be using these questions during the interviews. Please make
-          sure they are ok.
-        </div>
-        <ScrollArea className="flex flex-col justify-center items-center w-full mt-3">
-          {questions.map((question, index) => (
-            <QuestionCard
-              key={question.id}
-              questionNumber={index + 1}
-              questionData={question}
-              onDelete={handleDeleteQuestion}
-              onQuestionChange={handleInputChange}
-            />
-          ))}
-          <div ref={endOfListRef} />
-        </ScrollArea>
-        {questions.length < interviewData.question_count ? (
-          <div
-            className="border-indigo-600 opacity-75 hover:opacity-100 w-fit  rounded-full"
-            onClick={handleAddQuestion}
-          >
-            <Plus
-              size={45}
-              strokeWidth={2.2}
-              className="text-indigo-600  cursor-pointer"
-            />
-          </div>
-        ) : (
-          <></>
-        )}
-      </div>
-      <p className="mt-3 mb-1 ml-2 font-medium">
-        Interview Description{" "}
-        <span
-          style={{ fontSize: "0.7rem", lineHeight: "0.66rem" }}
-          className="font-light text-xs italic w-full text-left block"
-        >
-          Note: Interviewees will see this description.
-        </span>
-      </p>
-      <textarea
-        value={description}
-        className="h-fit mt-3 mx-2 py-2 border-2 rounded-md px-2 w-full border-gray-400"
-        placeholder="Enter your interview description."
-        rows={3}
-        onChange={(e) => {
-          setDescription(e.target.value);
-        }}
-        onBlur={(e) => {
-          setDescription(e.target.value.trim());
-        }}
-      />
-      <div className="flex flex-row justify-end items-end w-full">
+    <div className="text-center w-[38rem] max-h-[35.3rem] flex flex-col">
+      <div className="flex flex-row justify-between items-center mb-4">
         <Button
-          disabled={
-            isClicked ||
-            questions.length < interviewData.question_count ||
-            description.trim() === "" ||
-            questions.some((question) => question.question.trim() === "")
-          }
-          className="bg-indigo-600 hover:bg-indigo-800 mr-5 mt-2"
-          onClick={() => {
-            setIsClicked(true);
-            onSave();
-          }}
+          variant="ghost"
+          onClick={() => setProceed(false)}
+          className="flex items-center gap-1 p-1 h-auto hover:bg-transparent"
         >
-          Save
+          <ChevronLeft className="h-5 w-5" />
+          <span className="text-sm">Back</span>
         </Button>
+        <h1 className="text-xl font-semibold">Add Questions</h1>
+        <div className="w-16" /> {/* Spacer for centering */}
+      </div>
+
+      <div className="flex flex-col justify-center items-start mt-4 ml-10 mr-8 flex-1 overflow-hidden">
+        <div className="w-full mb-4">
+          <h3 className="text-sm font-medium mb-2 text-left">Description:</h3>
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full min-h-[80px] resize-none border-gray-300 focus:border-indigo-500"
+            placeholder="Enter interview description..."
+          />
+        </div>
+
+        <div className="w-full flex-1 overflow-hidden">
+          <ScrollArea className="h-full max-h-[400px] pr-4">
+            <div className="space-y-0">
+              {questions.map((question, index) => (
+                <QuestionCard
+                  key={question.id}
+                  questionNumber={index + 1}
+                  questionData={question}
+                  onQuestionChange={handleInputChange}
+                  onDelete={handleDeleteQuestion}
+                />
+              ))}
+              <div ref={endOfListRef} />
+            </div>
+          </ScrollArea>
+        </div>
+
+        <div className="flex flex-row w-full justify-between items-center mt-4 pt-4 border-t">
+          <Button
+            variant="outline"
+            onClick={handleAddQuestion}
+            disabled={questions.length >= interviewData.question_count}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Question
+          </Button>
+          <Button
+            onClick={onSave}
+            disabled={isClicked || questions.some((q) => !q.question.trim())}
+            className="bg-indigo-600 hover:bg-indigo-800 w-40"
+          >
+            {isClicked ? "Saving..." : "Save Interview"}
+          </Button>
+        </div>
       </div>
     </div>
   );
 }
+
 export default QuestionsPopup;
