@@ -72,6 +72,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
   const [showResults, setShowResults] = useState(false);
   const [needsRefresh, setNeedsRefresh] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isFilePickerOpenRef = useRef(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const organizationId = user?.organization_id;
@@ -88,6 +89,16 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
     setImportResult(null);
     setShowResults(false);
     onClose();
+  };
+
+  // Ignore auto-close from Radix (backdrop / escape / file dialog); we close explicitly via buttons
+  const handleOpenChange = (open: boolean) => {
+    if (!open && isFilePickerOpenRef.current) {
+      return; // keep dialog open while file picker is open
+    }
+    if (!open) {
+      handleClose();
+    }
   };
 
   const downloadTemplate = () => {
@@ -126,6 +137,10 @@ bob.johnson@example.com,Bob,Johnson,+1122334455,pending,Needs verification`;
 
       setFile(selectedFile);
       parseCSVFile(selectedFile);
+      // file picker is closed now
+      setTimeout(() => {
+        isFilePickerOpenRef.current = false;
+      }, 500);
     }
   };
 
@@ -283,8 +298,27 @@ bob.johnson@example.com,Bob,Johnson,+1122334455,pending,Needs verification`;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto"
+        onInteractOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('input[type="file"]') || isFilePickerOpenRef.current) {
+            e.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.closest('input[type="file"]') || isFilePickerOpenRef.current) {
+            e.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(e) => {
+          if (isFilePickerOpenRef.current) {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>Bulk Import Users from CSV</DialogTitle>
           <DialogDescription>
@@ -338,6 +372,17 @@ bob.johnson@example.com,Bob,Johnson,+1122334455,pending,Needs verification`;
                   accept=".csv"
                   onChange={handleFileChange}
                   className="hidden"
+                  onClick={() => {
+                    isFilePickerOpenRef.current = true;
+                  }}
+                  onFocus={() => {
+                    isFilePickerOpenRef.current = true;
+                  }}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      isFilePickerOpenRef.current = false;
+                    }, 500);
+                  }}
                 />
               </div>
 

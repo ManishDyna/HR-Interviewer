@@ -32,6 +32,9 @@ export default function AssigneesPage() {
   const [reviewFilter, setReviewFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const setCreateModalOpen = (val: boolean) => {
+    setIsCreateModalOpen(val);
+  };
   const [selectedAssignee, setSelectedAssignee] = useState<InterviewAssignee | null>(null);
   const [filteredAssignees, setFilteredAssignees] = useState<InterviewAssignee[]>([]);
   const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
@@ -359,7 +362,7 @@ export default function AssigneesPage() {
 
   const handleEditAssignee = (assignee: InterviewAssignee) => {
     setSelectedAssignee(assignee);
-    setIsCreateModalOpen(true);
+    setCreateModalOpen(true);
   };
 
   const handleViewDetails = (assignee: InterviewAssignee) => {
@@ -369,7 +372,7 @@ export default function AssigneesPage() {
   
   const handleCreateNew = () => {
     setSelectedAssignee(null);
-    setIsCreateModalOpen(true);
+    setCreateModalOpen(true);
   };
 
   const getStats = () => {
@@ -936,7 +939,7 @@ export default function AssigneesPage() {
       {/* Create/Edit Modal */}
       <CreateAssigneeModal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => setCreateModalOpen(false)}
         assignee={selectedAssignee}
         mode={selectedAssignee ? 'edit' : 'create'}
       />
