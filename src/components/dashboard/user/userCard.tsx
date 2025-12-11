@@ -43,6 +43,32 @@ const getInitials = (firstName: string, lastName: string) => {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
 };
 
+// Helper function to normalize image URLs to match actual saved filenames
+const normalizeImageUrl = (url: string | null | undefined): string | undefined => {
+  if (!url || !url.startsWith('/user-images/')) {
+    return undefined;
+  }
+  
+  try {
+    // Decode URL encoding (%20 -> space, etc.)
+    let decoded = decodeURIComponent(url);
+    
+    // Extract just the filename part
+    const filename = decoded.replace('/user-images/', '');
+    
+    // Normalize the filename to match what's actually saved
+    // The upload API replaces special chars with underscores: file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    // So we need to do the same normalization
+    const normalizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    
+    return `/user-images/${normalizedFilename}`;
+  } catch (error) {
+    // If decoding fails, return undefined
+    console.error('Error normalizing image URL:', url, error);
+    return undefined;
+  }
+};
+
 export const AssigneeCard: React.FC<AssigneeCardProps> = ({ assignee, onEdit, onViewDetails, interviews = [], hasGivenInterview = false, callId, interviewDate, isSelected = false, onSelect }) => {
   const { deleteAssignee, assignInterview, unassignInterview } = useAssignees();
   const { toast } = useToast();
@@ -117,8 +143,12 @@ return (
           )}
           <Avatar className="h-10 w-10">
             <AvatarImage
-              src={assignee.avatar_url}
+              src={normalizeImageUrl(assignee.avatar_url)}
               alt={`${assignee.first_name} ${assignee.last_name}`}
+              onError={(e) => {
+                // Hide broken images to prevent 404 errors
+                e.currentTarget.style.display = 'none';
+              }}
             />
             <AvatarFallback className="bg-blue-100 text-blue-600">
               {getInitials(assignee.first_name, assignee.last_name)}

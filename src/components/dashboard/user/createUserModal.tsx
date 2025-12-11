@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,9 +25,22 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
   assignee,
   mode
 }) => {
+  // Log component lifecycle
+  console.log('🔄 CreateAssigneeModal RENDER - isOpen:', isOpen, 'mode:', mode, 'assignee:', assignee?.id);
+  
   const [userImage, setUserImage] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [showExistingImage, setShowExistingImage] = useState(true);
   const { addAssignee, updateAssignee, refreshAssignees } = useAssignees();
   const { interviews } = useInterviews();
+  
+  // Track mount/unmount
+  useEffect(() => {
+    console.log('✅ CreateAssigneeModal MOUNTED');
+    return () => {
+      console.log('❌ CreateAssigneeModal UNMOUNTED');
+    };
+  }, []);
   
   const [formData, setFormData] = useState<CreateAssigneeRequest>({
     first_name: '',
@@ -45,13 +58,15 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
   });
   
   useEffect(() => {
+    
     if (assignee && mode === 'edit') {
+      const avatarUrl = assignee.avatar_url || '';
       setFormData({
         first_name: assignee.first_name || '',
         last_name: assignee.last_name || '',
         email: assignee.email || '',
         phone: assignee.phone || '',
-        avatar_url: assignee.avatar_url || '',
+        avatar_url: avatarUrl,
         interview_id: assignee.interview_id || '',
         organization_id: assignee.organization_id || null,
         status: assignee.status || 'active',
@@ -60,6 +75,13 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
         applicant_id: assignee.applicant_id || null,
         review_status: assignee.review_status || null
       });
+      // Don't show existing images to prevent 404 errors
+      setShowExistingImage(false);
+      setUserImage(null);
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+        setImagePreviewUrl(null);
+      }
     } else if (mode === 'create') {
       setFormData({
         first_name: '',
@@ -75,18 +97,15 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
         applicant_id: null,
         review_status: null
       });
+      setShowExistingImage(false);
+      setUserImage(null);
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+        setImagePreviewUrl(null);
+      }
     }
   }, [assignee, mode]);
 
-  const handleClose = () => {
-    onClose();
-  };
-
-  // Keep the dialog from auto-closing (we close explicitly on submit/cancel)
-  const handleDialogOpenChange = (open: boolean) => {
-    // Ignore close requests from Radix (backdrop, escape, file dialog); only close via buttons/submit
-    if (!open) return;
-  };
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -94,12 +113,15 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
     e.preventDefault();
     setIsLoading(true);
 
+    console.log('Form submitted, userImage:', userImage ? `${userImage.name} (${userImage.size} bytes)` : 'null');
+
     try {
     // Create a copy of the form data to modify
     const updatedFormData = { ...formData };
 
     // If userImage is present, upload it first
     if (userImage) {
+      console.log('Uploading image:', userImage.name, userImage.size, 'bytes');
       const imageFormData = new FormData();
       imageFormData.append("userImage", userImage);
 
@@ -109,10 +131,13 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
       });
 
       if (!uploadRes.ok) {
-        throw new Error("Image upload failed");
+        const errorData = await uploadRes.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Image upload failed:', errorData);
+        throw new Error(`Image upload failed: ${errorData.error || 'Unknown error'}`);
       }
 
       const { imageUrl } = await uploadRes.json();
+      console.log('Image uploaded successfully:', imageUrl);
       // Update the avatar_url in the form data
       updatedFormData.avatar_url = imageUrl;
     }
@@ -167,8 +192,15 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
       review_status: null
     });
     setUserImage(null); // Reset the image state
+    // Cleanup preview URL
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+      setImagePreviewUrl(null);
+    }
   } catch (error) {
     console.error('Error saving assignee:', error);
+    // Show error toast to user
+    alert(`Error: ${error instanceof Error ? error.message : 'Failed to save assignee'}`);
   } finally {
     setIsLoading(false);
   }
@@ -188,35 +220,30 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      console.log('File selected:', file.name, file.size, 'bytes');
       setUserImage(file);
+      // Create preview URL for the selected file
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviewUrl(previewUrl);
     }
   };
 
+  // Cleanup object URL when component unmounts or file changes
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-      <DialogContent
-        className="sm:max-w-[500px]"
-        onInteractOutside={(e) => {
-          // Prevent closing on outside interactions (especially file picker)
-          e.preventDefault();
-        }}
-        onPointerDownOutside={(e) => {
-          // Prevent closing on outside pointer interactions
-          e.preventDefault();
-        }}
-        onEscapeKeyDown={(e) => {
-          // Prevent escape from closing; use buttons to close
-          e.preventDefault();
-        }}
-        onOpenAutoFocus={(e) => {
-          // Prevent focus jump that can interfere with file picker
-          e.preventDefault();
-        }}
-        onCloseAutoFocus={(e) => {
-          // Prevent focus from returning to trigger automatically
-          e.preventDefault();
-        }}
-      >
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        onClose();
+      }
+    }}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Create New Assignee' : 'Edit Assignee'}
@@ -303,26 +330,39 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
           <div className="space-y-2">
             <Label htmlFor="avatar_url">Profile Image</Label>
             <div className="flex flex-col gap-2">
-              {formData.avatar_url && (
+              {/* Show preview for newly selected file */}
+              {userImage && imagePreviewUrl && (
+                <div className="flex items-center gap-3">
+                  <img 
+                    src={imagePreviewUrl} 
+                    alt="Preview" 
+                    className="w-20 h-20 object-cover rounded-full border-2 border-gray-200"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-700">
+                      {userImage.name}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {(userImage.size / 1024).toFixed(2)} KB
+                    </p>
+                  </div>
+                </div>
+              )}
+              {/* Show existing image preview if in edit mode */}
+              {!userImage && formData.avatar_url && showExistingImage && (
                 <img 
                   src={formData.avatar_url} 
-                  alt="Preview" 
+                  alt="Current" 
                   className="w-20 h-20 object-cover rounded-full"
                 />
               )}
-              {userImage && (
-                <p className="text-sm text-gray-600">
-                  Selected: {userImage.name}
-                </p>
-              )}
+              {/* Standard file input */}
               <Input
                 type="file"
                 name="userImage"
                 accept="image/*"
                 onChange={handleImageChange}
                 className="cursor-pointer"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
               />
             </div>
           </div>
@@ -404,7 +444,7 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
           </div>
         
           <div className="flex justify-end space-x-2 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading}>

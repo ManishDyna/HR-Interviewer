@@ -43,6 +43,8 @@ export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }
   const organizationId = user?.organization_id;
 
   const refreshAssignees = async () => {
+    console.log('🔄 refreshAssignees CALLED');
+    console.trace('Call stack:');
     try {
       setAssigneesLoading(true);
       // Pass organizationId (which can be undefined/null) - service will handle it

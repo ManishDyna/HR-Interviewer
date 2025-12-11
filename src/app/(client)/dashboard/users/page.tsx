@@ -22,6 +22,8 @@ import { ResponseService } from '@/services/responses.service';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function AssigneesPage() {
+  console.log('🔄 AssigneesPage RENDER');
+  
   const { assignees, assigneesLoading, refreshAssignees, searchAssignees, getAssigneesByStatus, deleteAssignee } = useAssignees();
   const { interviews, interviewsLoading } = useInterviews();
   const { toast } = useToast();
@@ -32,22 +34,24 @@ export default function AssigneesPage() {
   const [reviewFilter, setReviewFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const setCreateModalOpen = (val: boolean) => {
-    setIsCreateModalOpen(val);
-  };
   const [selectedAssignee, setSelectedAssignee] = useState<InterviewAssignee | null>(null);
-  const [filteredAssignees, setFilteredAssignees] = useState<InterviewAssignee[]>([]);
   const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewAssignee, setViewAssignee] = useState<InterviewAssignee | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [assigneeToDelete, setAssigneeToDelete] = useState<InterviewAssignee | null>(null);
   const [assigneesWithResponses, setAssigneesWithResponses] = useState<Set<string>>(new Set());
   const [assigneeCallIds, setAssigneeCallIds] = useState<Map<string, string>>(new Map()); // email -> call_id mapping
   const [assigneeInterviewDates, setAssigneeInterviewDates] = useState<Map<string, string>>(new Map()); // email -> interview_date mapping
   const [selectedAssignees, setSelectedAssignees] = useState<Set<number>>(new Set());
   const [isSendingEmails, setIsSendingEmails] = useState(false);
-
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [viewAssignee, setViewAssignee] = useState<InterviewAssignee | null>(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [assigneeToDelete, setAssigneeToDelete] = useState<InterviewAssignee | null>(null);
+  
+  const isModalOpenRef = React.useRef(false);
+  
+  React.useEffect(() => {
+    console.log('📊 Modal state changed - isCreateModalOpen:', isCreateModalOpen);
+    isModalOpenRef.current = isCreateModalOpen || isBulkImportModalOpen || isViewModalOpen || deleteConfirmOpen;
+  }, [isCreateModalOpen, isBulkImportModalOpen, isViewModalOpen, deleteConfirmOpen]);
 
   // Listen for review status updates from interview details page
   React.useEffect(() => {
@@ -57,21 +61,20 @@ export default function AssigneesPage() {
     };
 
     window.addEventListener('assigneeReviewStatusUpdated', handleReviewStatusUpdate);
-    
-    // Also refresh when window gains focus (user comes back from interview details)
-    const handleFocus = () => {
-      refreshAssignees();
-    };
-    window.addEventListener('focus', handleFocus);
 
     return () => {
       window.removeEventListener('assigneeReviewStatusUpdated', handleReviewStatusUpdate);
-      window.removeEventListener('focus', handleFocus);
     };
   }, [refreshAssignees]);
 
   // Check which assignees have given interviews (have responses) and store their call_ids and interview dates
   React.useEffect(() => {
+    // Don't run this expensive check while any modal is open to prevent re-renders
+    if (isModalOpenRef.current) {
+      console.log('⏸️ Deferring assignee response check (modal is open)');
+      return;
+    }
+
     const checkAssigneesWithResponses = async () => {
       const assigneesWithResponsesSet = new Set<string>();
       const callIdsMap = new Map<string, string>();
@@ -124,7 +127,8 @@ export default function AssigneesPage() {
   }, [assignees]);
 
   // Filter assignees based on search, status, interview, and tag
-  React.useEffect(() => {
+  // Use useMemo instead of useEffect to avoid unnecessary state updates
+  const filteredAssignees = React.useMemo(() => {
     let filtered = assignees;
 
     if (statusFilter !== 'all') {
@@ -167,7 +171,7 @@ export default function AssigneesPage() {
       );
     }
 
-    setFilteredAssignees(filtered);
+    return filtered;
   }, [assignees, searchTerm, statusFilter, interviewFilter, tagFilter, reviewFilter]);
 
   const handleSearch = (value: string) => {
@@ -362,7 +366,7 @@ export default function AssigneesPage() {
 
   const handleEditAssignee = (assignee: InterviewAssignee) => {
     setSelectedAssignee(assignee);
-    setCreateModalOpen(true);
+    setIsCreateModalOpen(true);
   };
 
   const handleViewDetails = (assignee: InterviewAssignee) => {
@@ -372,7 +376,7 @@ export default function AssigneesPage() {
   
   const handleCreateNew = () => {
     setSelectedAssignee(null);
-    setCreateModalOpen(true);
+    setIsCreateModalOpen(true);
   };
 
   const getStats = () => {
@@ -939,7 +943,7 @@ export default function AssigneesPage() {
       {/* Create/Edit Modal */}
       <CreateAssigneeModal
         isOpen={isCreateModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        onClose={() => setIsCreateModalOpen(false)}
         assignee={selectedAssignee}
         mode={selectedAssignee ? 'edit' : 'create'}
       />

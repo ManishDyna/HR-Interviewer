@@ -66,6 +66,32 @@ const getInitials = (firstName?: string, lastName?: string) => {
   return (first + last).toUpperCase() || "U";
 };
 
+// Helper function to normalize image URLs to match actual saved filenames
+const normalizeImageUrl = (url: string | null | undefined): string | undefined => {
+  if (!url || !url.startsWith('/user-images/')) {
+    return undefined;
+  }
+  
+  try {
+    // Decode URL encoding (%20 -> space, etc.)
+    let decoded = decodeURIComponent(url);
+    
+    // Extract just the filename part
+    const filename = decoded.replace('/user-images/', '');
+    
+    // Normalize the filename to match what's actually saved
+    // The upload API replaces special chars with underscores: file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    // So we need to do the same normalization
+    const normalizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    
+    return `/user-images/${normalizedFilename}`;
+  } catch (error) {
+    // If decoding fails, return undefined
+    console.error('Error normalizing image URL:', url, error);
+    return undefined;
+  }
+};
+
 const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDetails }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -154,7 +180,14 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEdit, onDelete, onViewDe
                     <TableCell>
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar_url} alt={fullName} />
+                          <AvatarImage 
+                            src={normalizeImageUrl(user.avatar_url)} 
+                            alt={fullName}
+                            onError={(e) => {
+                              // Hide broken images to prevent 404 errors
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
                           <AvatarFallback className="bg-blue-100 text-blue-800 text-xs">
                             {initials}
                           </AvatarFallback>
