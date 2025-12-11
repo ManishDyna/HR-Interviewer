@@ -7,15 +7,15 @@ import { Toaster } from "@/components/ui/toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "FoloUp",
-  description: "AI powered Interviews",
+  title: "DynaTech Systems - HR Interviewer",
+  description: "AI-powered Interview Management System",
   openGraph: {
-    title: "FoloUp",
-    description: "AI-powered Interviews",
-    siteName: "FoloUp",
+    title: "DynaTech Systems - HR Interviewer",
+    description: "AI-powered Interview Management System",
+    siteName: "DynaTech Systems",
     images: [
       {
-        url: "/foloup.png",
+        url: "/dynatech-logo.png",
         width: 800,
         height: 600,
       },

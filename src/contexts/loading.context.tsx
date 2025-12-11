@@ -56,12 +56,24 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({ children }) =>
       // Legacy support: decrement counter without specific task ID
       console.log(`🟡 Loading STOP (no task ID)`);
       loadingCounterRef.current = Math.max(0, loadingCounterRef.current - 1);
+      
+      // If counter hits 0 but tasks remain, clear the oldest task
+      if (loadingCounterRef.current === 0 && activeTasksRef.current.size > 0) {
+        const oldestTask = Array.from(activeTasksRef.current)[0];
+        console.log(`🧹 Cleaning up orphaned task: ${oldestTask}`);
+        activeTasksRef.current.delete(oldestTask);
+      }
     }
     
     console.log(`📊 Active tasks: ${activeTasksRef.current.size}, Counter: ${loadingCounterRef.current}`);
     
     // Only stop loading when all tasks are complete
-    if (loadingCounterRef.current === 0 && activeTasksRef.current.size === 0) {
+    // Auto-cleanup: If counter is 0 but tasks remain, force clear them
+    if (loadingCounterRef.current === 0) {
+      if (activeTasksRef.current.size > 0) {
+        console.log(`⚠️ Counter is 0 but ${activeTasksRef.current.size} task(s) remain. Force clearing...`);
+        activeTasksRef.current.clear();
+      }
       console.log(`✅ All loading tasks complete - hiding loader`);
       setIsLoading(false);
     }

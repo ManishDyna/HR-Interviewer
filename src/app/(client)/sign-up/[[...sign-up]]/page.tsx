@@ -65,38 +65,52 @@ function SignUpPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen w-full bg-gradient-to-br from-slate-50 via-white to-indigo-50 absolute top-0 left-0 z-50 py-8">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiM2MzY2ZjEiIGZpbGwtb3BhY2l0eT0iMC4wNCI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyek0zNiAyNHYySDI0di0yaDEyeiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-      
+    <div className="flex items-center justify-center min-h-screen w-full bg-gray-100 absolute top-0 left-0 z-50 py-8">
       {/* Desktop View */}
       <div className="hidden md:flex flex-col items-center justify-center z-10">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="text-center mb-6">
-            <h1 className="text-4xl font-bold text-gray-900">
-              Folo<span className="text-indigo-600">Up</span>
-            </h1>
-            <p className="mt-2 text-gray-600">AI-powered Interviews</p>
+        {/* Black Card Container */}
+        <div className="bg-black rounded-2xl shadow-2xl p-12 w-full max-w-md">
+          {/* Header with Logo and Microsoft Badge */}
+          <div className="w-full mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <img 
+                src="/dynatech-logo.png" 
+                alt="DynaTech Systems" 
+                className="h-7 w-auto object-contain brightness-0 invert"
+              />
+              <div className="flex items-center gap-2">
+                <div className="grid grid-cols-2 gap-0.5 w-4 h-4">
+                  <div className="bg-red-500 w-1.5 h-1.5"></div>
+                  <div className="bg-green-500 w-1.5 h-1.5"></div>
+                  <div className="bg-blue-500 w-1.5 h-1.5"></div>
+                  <div className="bg-yellow-500 w-1.5 h-1.5"></div>
+                </div>
+                <div className="text-white text-xs font-semibold">
+                  <div className="leading-tight">Microsoft</div>
+                  <div className="text-[9px] text-gray-400 font-normal">Solutions Partner</div>
+                </div>
+              </div>
+            </div>
+            <p className="text-white text-sm">AI-powered Interview Management System</p>
           </div>
 
-          {/* Sign Up Card */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-100 p-8">
+          {/* Main Content */}
+          <div className="w-full">
             <div className="text-center mb-6">
-              <h2 className="text-2xl font-semibold text-gray-900">Create account</h2>
-              <p className="text-gray-500 mt-1">Start your AI interview journey</p>
+              <h1 className="text-3xl font-bold text-white mb-2">Create account</h1>
+              <p className="text-white text-sm">Start your AI interview journey</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name" className="text-gray-700">First Name</Label>
+                  <Label htmlFor="first_name" className="text-white text-sm font-medium">First Name</Label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                     <Input
@@ -106,14 +120,14 @@ function SignUpPage() {
                       placeholder="John"
                       value={formData.first_name}
                       onChange={handleChange}
-                      className="pl-10 h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                      className="pl-10 h-11 border-0 bg-white text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 rounded-lg"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="last_name" className="text-gray-700">Last Name</Label>
+                  <Label htmlFor="last_name" className="text-white text-sm font-medium">Last Name</Label>
                   <Input
                     id="last_name"
                     name="last_name"
@@ -128,7 +142,7 @@ function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-700">Email</Label>
+                <Label htmlFor="email" className="text-white text-sm font-medium">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
@@ -145,7 +159,7 @@ function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-700">Password</Label>
+                <Label htmlFor="password" className="text-white text-sm font-medium">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
@@ -155,7 +169,7 @@ function SignUpPage() {
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={handleChange}
-                    className="pl-10 pr-10 h-11 border-gray-200 focus:border-indigo-500 focus:ring-indigo-500"
+                    className="pl-10 pr-10 h-11 border-0 bg-white text-gray-900 placeholder:text-gray-500 focus:ring-2 focus:ring-white/20 rounded-lg"
                     required
                   />
                   <button
@@ -169,7 +183,7 @@ function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm_password" className="text-gray-700">Confirm Password</Label>
+                <Label htmlFor="confirm_password" className="text-white text-sm font-medium">Confirm Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                   <Input
@@ -188,7 +202,7 @@ function SignUpPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors mt-2"
+                className="w-full h-12 bg-[#5865f2] hover:bg-[#4752c4] text-white font-semibold rounded-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] mt-2"
               >
                 {isLoading ? (
                   <>
@@ -202,9 +216,9 @@ function SignUpPage() {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-gray-600">
+              <p className="text-white text-sm">
                 Already have an account?{" "}
-                <Link href="/sign-in" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                <Link href="/sign-in" className="text-[#5865f2] hover:text-[#4752c4] font-semibold transition-colors">
                   Sign in
                 </Link>
               </p>
@@ -212,22 +226,24 @@ function SignUpPage() {
           </div>
 
           {/* Footer */}
-          <p className="mt-6 text-center text-sm text-gray-500">
-            © {new Date().getFullYear()} FoloUp. All rights reserved.
+          <p className="mt-8 text-center text-xs text-white/60">
+            © {new Date().getFullYear()} DynaTech Systems. All rights reserved.
           </p>
         </div>
       </div>
 
       {/* Mobile View */}
       <div className="block md:hidden px-6 w-full max-w-sm z-10">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Folo<span className="text-indigo-600">Up</span>
-          </h1>
-          <h2 className="text-lg mt-4 text-gray-700">
+        <div className="text-center bg-black rounded-2xl p-8">
+          <img 
+            src="/dynatech-logo.png" 
+            alt="DynaTech Systems" 
+            className="h-10 w-auto mx-auto mb-3 object-contain brightness-0 invert"
+          />
+          <h2 className="text-lg mt-4 text-white">
             Mobile version is currently under construction. 🚧
           </h2>
-          <p className="text-gray-600 mt-3">
+          <p className="text-white/70 mt-3">
             Please sign in using a PC for the best experience. Sorry for the
             inconvenience.
           </p>

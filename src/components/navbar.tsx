@@ -10,7 +10,7 @@ import { LogOut, User, Settings } from "lucide-react";
 function Navbar() {
   const pathname = usePathname();
   const { startLoading } = useLoading();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +27,7 @@ function Navbar() {
   }, []);
 
   const handleLogoClick = () => {
-    if (!pathname.endsWith("/dashboard")) {
+    if (pathname && !pathname.endsWith("/dashboard")) {
       startLoading();
     }
   };
@@ -43,7 +43,7 @@ function Navbar() {
   };
 
   return (
-    <div className="fixed inset-x-0 top-0 bg-slate-100 z-[10] h-fit py-4">
+    <div className="fixed inset-x-0 top-0 bg-slate-100 z-[10] h-fit py-4" style={{ backgroundColor: 'black' }}>
       <div className="flex items-center justify-between h-full gap-2 px-8 mx-auto">
         <div className="flex flex-row gap-3 justify-center items-center">
           <Link 
@@ -51,10 +51,11 @@ function Navbar() {
             className="flex items-center gap-2"
             onClick={handleLogoClick}
           >
-            <p className="px-2 py-1 text-2xl font-bold text-black">
-              Folo<span className="text-indigo-600">Up</span>{" "}
-              <span className="text-[8px]">Beta</span>
-            </p>
+            <img 
+              src="/dynatech-logo.png" 
+              alt="DynaTech Systems Logo" 
+              className="h-10 w-auto object-contain"
+            />
           </Link>
         </div>
 
@@ -63,15 +64,20 @@ function Navbar() {
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2"
+            disabled={authLoading}
           >
-            {user?.avatar_url ? (
+            {authLoading ? (
+              <div className="w-9 h-9 rounded-full bg-gray-300 flex items-center justify-center border-2 border-white shadow-sm animate-pulse">
+                <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : user?.avatar_url ? (
               <img
                 src={user.avatar_url}
                 alt={`${user.first_name} ${user.last_name}`}
                 className="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm"
               />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-medium text-sm border-2 border-white shadow-sm">
+              <div className="w-9 h-9 rounded-full bg-[#ff6b35] flex items-center justify-center text-white font-medium text-sm border-2 border-white shadow-sm">
                 {getUserInitials()}
               </div>
             )}

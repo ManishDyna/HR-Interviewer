@@ -229,13 +229,22 @@ export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }
   useEffect(() => {
     // Wait for auth to finish loading
     if (authLoading) {
+      console.log('⏳ Users Context: Waiting for auth to complete');
       return;
     }
 
-    // Fetch assignees regardless of organization_id
+    // If no user after auth loads, don't fetch
+    if (!user?.id) {
+      console.log('❌ Users Context: No user found, skipping fetch');
+      setAssigneesLoading(false);
+      return;
+    }
+
+    // Fetch assignees when user is ready
+    console.log('✅ Users Context: User ready, fetching assignees');
     refreshAssignees();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId, authLoading]);
+  }, [user?.id, authLoading]);
 
   const value: AssigneesContextType = {
     assignees,

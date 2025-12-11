@@ -25,22 +25,11 @@ export const CreateAssigneeModal: React.FC<CreateAssigneeModalProps> = ({
   assignee,
   mode
 }) => {
-  // Log component lifecycle
-  console.log('🔄 CreateAssigneeModal RENDER - isOpen:', isOpen, 'mode:', mode, 'assignee:', assignee?.id);
-  
   const [userImage, setUserImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [showExistingImage, setShowExistingImage] = useState(true);
   const { addAssignee, updateAssignee, refreshAssignees } = useAssignees();
   const { interviews } = useInterviews();
-  
-  // Track mount/unmount
-  useEffect(() => {
-    console.log('✅ CreateAssigneeModal MOUNTED');
-    return () => {
-      console.log('❌ CreateAssigneeModal UNMOUNTED');
-    };
-  }, []);
   
   const [formData, setFormData] = useState<CreateAssigneeRequest>({
     first_name: '',

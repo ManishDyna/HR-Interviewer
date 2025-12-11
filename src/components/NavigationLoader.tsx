@@ -14,7 +14,7 @@ const RENDER_BUFFER_TIME = 800; // Extra time to ensure page is fully rendered (
 export function NavigationLoader() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { isLoading, stopLoading } = useLoading();
+  const { isLoading, stopLoading, forceStopLoading } = useLoading();
   const { isLoading: authLoading } = useAuth();
   
   // Get loading states from all contexts
@@ -26,6 +26,8 @@ export function NavigationLoader() {
   const loadingStartTimeRef = useRef<number | null>(null);
   const [canStopLoading, setCanStopLoading] = useState(false);
   const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const maxWaitTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const MAX_LOADER_TIME = 5000; // Maximum 5 seconds
 
   // Track when loading started
   useEffect(() => {
@@ -38,11 +40,27 @@ export function NavigationLoader() {
         setCanStopLoading(true);
       }, MIN_LOADER_DISPLAY_TIME);
       
-      return () => clearTimeout(timeout);
+      // Safety timeout: Force stop after MAX_LOADER_TIME
+      maxWaitTimeoutRef.current = setTimeout(() => {
+        console.log('⏰ Max loader time reached - force stopping loader');
+        forceStopLoading();
+      }, MAX_LOADER_TIME);
+      
+      return () => {
+        clearTimeout(timeout);
+        if (maxWaitTimeoutRef.current) {
+          clearTimeout(maxWaitTimeoutRef.current);
+        }
+      };
     } else if (!isLoading) {
       loadingStartTimeRef.current = null;
+      // Clear max timeout when loading stops naturally
+      if (maxWaitTimeoutRef.current) {
+        clearTimeout(maxWaitTimeoutRef.current);
+        maxWaitTimeoutRef.current = null;
+      }
     }
-  }, [isLoading]);
+  }, [isLoading, forceStopLoading]);
 
   // Handle route changes
   useEffect(() => {
@@ -57,6 +75,9 @@ export function NavigationLoader() {
     return () => {
       if (renderTimeoutRef.current) {
         clearTimeout(renderTimeoutRef.current);
+      }
+      if (maxWaitTimeoutRef.current) {
+        clearTimeout(maxWaitTimeoutRef.current);
       }
     };
   }, []);

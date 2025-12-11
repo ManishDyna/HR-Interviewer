@@ -23,8 +23,6 @@ import { ResponseService } from '@/services/responses.service';
 import { useToast } from '@/components/ui/use-toast';
 
 export default function AssigneesPage() {
-  console.log('🔄 AssigneesPage RENDER');
-  
   const { assignees, assigneesLoading, refreshAssignees, searchAssignees, getAssigneesByStatus, deleteAssignee } = useAssignees();
   const { interviews, interviewsLoading } = useInterviews();
   const { toast } = useToast();
@@ -56,7 +54,6 @@ export default function AssigneesPage() {
   const isModalOpenRef = React.useRef(false);
   
   React.useEffect(() => {
-    console.log('📊 Modal state changed - isCreateModalOpen:', isCreateModalOpen);
     isModalOpenRef.current = isCreateModalOpen || isBulkImportModalOpen || isViewModalOpen || deleteConfirmOpen;
   }, [isCreateModalOpen, isBulkImportModalOpen, isViewModalOpen, deleteConfirmOpen]);
 
@@ -409,9 +406,6 @@ export default function AssigneesPage() {
     );
   }
   // View information to view button
-  // Debug: Log selection count on every render
-  console.log('🔍 Render - Selected assignees count:', selectedAssignees.size, 'IDs:', Array.from(selectedAssignees));
-
   return (
     <div className="space-y-6 p-6">
       {/* Header */}

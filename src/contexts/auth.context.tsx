@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { User } from "@/types/auth";
 
@@ -38,43 +38,119 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const sessionCheckAttempts = useRef(0);
+  const sessionRefreshInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Check session on mount
+  // Check session on mount and setup periodic refresh
   useEffect(() => {
+    console.log('🔐 Auth Provider: Initializing session check');
     checkSession();
+    
+    // Setup periodic session refresh every 5 minutes
+    sessionRefreshInterval.current = setInterval(() => {
+      console.log('🔄 Auth Provider: Periodic session refresh');
+      const token = localStorage.getItem("auth_token");
+      if (token) {
+        checkSession(true); // Silent refresh
+      }
+    }, 5 * 60 * 1000); // 5 minutes
+
+    // Check session when tab becomes visible again
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('👁️ Auth Provider: Tab became visible, checking session');
+        const token = localStorage.getItem("auth_token");
+        if (token) {
+          checkSession(true); // Silent refresh
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (sessionRefreshInterval.current) {
+        clearInterval(sessionRefreshInterval.current);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
-  const checkSession = async () => {
+  const checkSession = async (silent: boolean = false) => {
     try {
       const token = localStorage.getItem("auth_token");
+      
       if (!token) {
+        console.log('🔐 Auth Provider: No token found');
+        setUser(null);
         setIsLoading(false);
         return;
       }
+
+      console.log('🔐 Auth Provider: Checking session with token');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
       const response = await fetch("/api/auth/session", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data.user);
+        if (data.success && data.user) {
+          console.log('✅ Auth Provider: Session valid, user:', data.user.email);
+          setUser(data.user);
+          sessionCheckAttempts.current = 0; // Reset retry counter on success
+        } else {
+          console.error('❌ Auth Provider: Invalid session response');
+          handleInvalidSession();
+        }
       } else {
-        // Invalid token, clear storage
-        localStorage.removeItem("auth_token");
+        console.error('❌ Auth Provider: Session check failed with status:', response.status);
+        handleInvalidSession();
       }
-    } catch (error) {
-      console.error("Session check failed:", error);
-      localStorage.removeItem("auth_token");
+    } catch (error: any) {
+      console.error("❌ Auth Provider: Session check error:", error);
+      
+      // Retry logic for network errors (not auth errors)
+      if (error.name === 'AbortError' || error.message?.includes('fetch')) {
+        sessionCheckAttempts.current++;
+        
+        if (sessionCheckAttempts.current < 3) {
+          console.log(`🔄 Auth Provider: Retrying session check (attempt ${sessionCheckAttempts.current + 1}/3)`);
+          setTimeout(() => checkSession(silent), 2000); // Retry after 2 seconds
+          return;
+        } else {
+          console.error('❌ Auth Provider: Max retry attempts reached');
+        }
+      }
+      
+      // Don't clear token on network errors during silent refresh
+      if (!silent) {
+        handleInvalidSession();
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
+  };
+
+  const handleInvalidSession = () => {
+    console.log('🔐 Auth Provider: Clearing invalid session');
+    localStorage.removeItem("auth_token");
+    setUser(null);
+    sessionCheckAttempts.current = 0;
   };
 
   const login = async (email: string, password: string): Promise<{ success: boolean; message?: string }> => {
     try {
+      console.log('🔐 Auth Provider: Attempting login for:', email);
       const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
@@ -86,14 +162,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const data = await response.json();
 
       if (response.ok && data.success) {
+        console.log('✅ Auth Provider: Login successful');
         localStorage.setItem("auth_token", data.session.token);
         setUser(data.session.user);
+        sessionCheckAttempts.current = 0; // Reset retry counter
         return { success: true };
       }
 
+      console.error('❌ Auth Provider: Login failed:', data.message);
       return { success: false, message: data.message || "Login failed" };
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("❌ Auth Provider: Login error:", error);
       return { success: false, message: "An error occurred during login" };
     }
   };
@@ -130,6 +209,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
+      console.log('🔐 Auth Provider: Logging out');
       const token = localStorage.getItem("auth_token");
       if (token) {
         await fetch("/api/auth/logout", {
@@ -140,16 +220,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
       }
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("❌ Auth Provider: Logout error:", error);
     } finally {
       localStorage.removeItem("auth_token");
       setUser(null);
+      sessionCheckAttempts.current = 0;
+      
+      // Clear the periodic refresh interval
+      if (sessionRefreshInterval.current) {
+        clearInterval(sessionRefreshInterval.current);
+      }
+      
+      console.log('✅ Auth Provider: Logout complete');
       router.push("/sign-in");
     }
   };
 
   const refreshSession = async () => {
-    await checkSession();
+    console.log('🔄 Auth Provider: Manual session refresh requested');
+    await checkSession(false);
   };
 
   return (
