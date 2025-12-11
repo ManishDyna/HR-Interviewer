@@ -42,9 +42,14 @@ export function InterviewProvider({ children }: InterviewProviderProps) {
       setInterviewsLoading(true);
       const response = await InterviewService.getAllInterviews(user.id);
       setInterviews(response);
+      console.log('✅ Interviews data set, count:', response.length);
+      
+      // Small delay to ensure state has propagated
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
       console.error(error);
     } finally {
+      console.log('📊 Setting interviewsLoading to false');
       setInterviewsLoading(false);
     }
   };

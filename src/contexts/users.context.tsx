@@ -50,6 +50,10 @@ export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }
       // Pass organizationId (which can be undefined/null) - service will handle it
       const data = await assigneeService.getAllAssignees(organizationId);
       setAssignees(data);
+      console.log('✅ Assignees data set, count:', data.length);
+      
+      // Small delay to ensure state has propagated
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
       console.error('Error refreshing assignees:', error);
       toast({
@@ -58,6 +62,7 @@ export const AssigneesProvider: React.FC<AssigneesProviderProps> = ({ children }
         variant: 'destructive',
       });
     } finally {
+      console.log('📊 Setting assigneesLoading to false');
       setAssigneesLoading(false);
     }
   };

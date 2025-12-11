@@ -204,15 +204,6 @@ bob.johnson@example.com,Bob,Johnson,+1122334455,pending,Needs verification`;
   };
 
   const handleImport = async () => {
-    if (!organizationId) {
-      toast({
-        title: 'Error',
-        description: 'Organization not found.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     if (parsedData.length === 0) {
       toast({
         title: 'No Data',
@@ -224,7 +215,7 @@ bob.johnson@example.com,Bob,Johnson,+1122334455,pending,Needs verification`;
 
     setIsLoading(true);
     setShowResults(false);
-    startLoading(); // Show global loader
+    const taskId = startLoading('csv-import'); // Show global loader with task ID
 
     try {
       // TODO: Change back to '/api/users/bulk-import' once auth is fixed
@@ -237,7 +228,7 @@ bob.johnson@example.com,Bob,Johnson,+1122334455,pending,Needs verification`;
         credentials: 'include', // Include cookies for authentication
         body: JSON.stringify({
           users: parsedData,
-          organization_id: organizationId,
+          organization_id: organizationId || null, // Make organization optional
           // Don't send created_by - let it be NULL for bulk imports without auth
         }),
       });
@@ -271,7 +262,7 @@ bob.johnson@example.com,Bob,Johnson,+1122334455,pending,Needs verification`;
       });
     } finally {
       setIsLoading(false);
-      stopLoading(); // Hide global loader
+      stopLoading(taskId); // Hide global loader with task ID
     }
   };
 

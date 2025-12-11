@@ -40,9 +40,14 @@ export function InterviewerProvider({ children }: InterviewerProviderProps) {
       setInterviewersLoading(true);
       const response = await InterviewerService.getAllInterviewers(user.id);
       setInterviewers(response);
+      console.log('✅ Interviewers data set, count:', response.length);
+      
+      // Small delay to ensure state has propagated
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
       console.error(error);
     } finally {
+      console.log('📊 Setting interviewersLoading to false');
       setInterviewersLoading(false);
     }
   };

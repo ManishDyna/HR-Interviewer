@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Grid3X3, List, Users, UserCheck, UserX, Briefcase, Upload, Download, Tag, ExternalLink, Trash2, Mail, CheckSquare, Square, FileText, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Grid3X3, List, Users, UserCheck, UserX, Briefcase, Upload, Download, Tag, ExternalLink, Trash2, Mail, CheckSquare, Square, FileText, CheckCircle2, AlertTriangle, MoreHorizontal, Edit, Trash, UserPlus } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { useAssignees } from '@/contexts/users.context';
@@ -15,6 +15,7 @@ import { useInterviews } from '@/contexts/interviews.context';
 import { AssigneeCard } from '@/components/dashboard/user/userCard';
 import { CreateAssigneeModal } from '@/components/dashboard/user/createUserModal';
 import { BulkImportModal } from '@/components/dashboard/user/bulkImportModal';
+import { BulkActionsModals } from '@/components/dashboard/user/BulkActionsModals';
 import { InterviewAssignee } from '@/types/user';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -45,6 +46,12 @@ export default function AssigneesPage() {
   const [assigneeInterviewDates, setAssigneeInterviewDates] = useState<Map<string, string>>(new Map()); // email -> interview_date mapping
   const [selectedAssignees, setSelectedAssignees] = useState<Set<number>>(new Set());
   const [isSendingEmails, setIsSendingEmails] = useState(false);
+  
+  // Bulk action modals
+  const [isBulkStatusModalOpen, setIsBulkStatusModalOpen] = useState(false);
+  const [isBulkInterviewModalOpen, setIsBulkInterviewModalOpen] = useState(false);
+  const [isBulkTagModalOpen, setIsBulkTagModalOpen] = useState(false);
+  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
   
   const isModalOpenRef = React.useRef(false);
   
@@ -249,6 +256,7 @@ export default function AssigneesPage() {
       } else {
         newSet.add(assigneeId);
       }
+      console.log('✅ Selected assignees:', Array.from(newSet), 'Count:', newSet.size);
       return newSet;
     });
   };
@@ -401,46 +409,110 @@ export default function AssigneesPage() {
     );
   }
   // View information to view button
+  // Debug: Log selection count on every render
+  console.log('🔍 Render - Selected assignees count:', selectedAssignees.size, 'IDs:', Array.from(selectedAssignees));
+
   return (
     <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Interview Assignees</h1>
-          <p className="text-gray-600">Manage users who can be assigned interviews</p>
-        </div>
-        <div className="flex gap-2">
-          {selectedAssignees.size > 0 && (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Interview Assignees</h1>
+            <p className="text-gray-600">Manage users who can be assigned interviews</p>
+          </div>
+          <div className="flex gap-2 flex-wrap">
             <Button 
-              onClick={handleSendEmails}
-              disabled={isSendingEmails}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+              onClick={() => setIsBulkImportModalOpen(true)} 
+              variant="outline" 
+              className="flex items-center gap-2"
             >
-              <Mail className="h-4 w-4" />
-              {isSendingEmails ? 'Sending...' : `Send Email (${selectedAssignees.size})`}
+              <Upload className="h-4 w-4" />
+              Import CSV
             </Button>
-          )}
-          <Button 
-            onClick={() => setIsBulkImportModalOpen(true)} 
-            variant="outline" 
-            className="flex items-center gap-2"
-          >
-            <Upload className="h-4 w-4" />
-            Import CSV
-          </Button>
-          <Button 
-            onClick={exportToCSV} 
-            variant="outline" 
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button onClick={handleCreateNew} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Add Assignee
-          </Button>
+            <Button 
+              onClick={exportToCSV} 
+              variant="outline" 
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
+            <Button onClick={handleCreateNew} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add Assignee
+            </Button>
+          </div>
         </div>
+
+        {/* Bulk Actions Bar - Shows when assignees are selected */}
+        {selectedAssignees.size > 0 && (
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <CheckSquare className="h-5 w-5 text-blue-600" />
+                <span className="font-medium text-blue-900">
+                  {selectedAssignees.size} assignee(s) selected
+                </span>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Button 
+                  onClick={handleSendEmails}
+                  disabled={isSendingEmails}
+                  size="sm"
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  <Mail className="h-4 w-4" />
+                  {isSendingEmails ? 'Sending...' : 'Send Email'}
+                </Button>
+                <Button 
+                  onClick={() => setIsBulkStatusModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  Change Status
+                </Button>
+                <Button 
+                  onClick={() => setIsBulkInterviewModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Assign Interview
+                </Button>
+                <Button 
+                  onClick={() => setIsBulkTagModalOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Tag className="h-4 w-4" />
+                  Assign Tag
+                </Button>
+                <Button 
+                  onClick={() => setIsBulkDeleteConfirmOpen(true)}
+                  variant="destructive"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Trash className="h-4 w-4" />
+                  Delete
+                </Button>
+                <Button 
+                  onClick={() => setSelectedAssignees(new Set())}
+                  variant="ghost"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  Clear Selection
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Stats Cards */}
@@ -956,6 +1028,23 @@ export default function AssigneesPage() {
           // Refresh the assignees list after import
           refreshAssignees();
         }}
+      />
+
+      {/* Bulk Actions Modals */}
+      <BulkActionsModals
+        selectedAssignees={selectedAssignees}
+        assignees={assignees}
+        interviews={interviews}
+        isBulkStatusModalOpen={isBulkStatusModalOpen}
+        setIsBulkStatusModalOpen={setIsBulkStatusModalOpen}
+        isBulkInterviewModalOpen={isBulkInterviewModalOpen}
+        setIsBulkInterviewModalOpen={setIsBulkInterviewModalOpen}
+        isBulkTagModalOpen={isBulkTagModalOpen}
+        setIsBulkTagModalOpen={setIsBulkTagModalOpen}
+        isBulkDeleteConfirmOpen={isBulkDeleteConfirmOpen}
+        setIsBulkDeleteConfirmOpen={setIsBulkDeleteConfirmOpen}
+        onBulkActionComplete={() => refreshAssignees()}
+        onClearSelection={() => setSelectedAssignees(new Set())}
       />
 
       {/* View Details Modal */}
