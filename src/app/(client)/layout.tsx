@@ -1,7 +1,6 @@
 "use client";
 
 import "../globals.css";
-import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/navbar";
 import Providers from "@/components/providers";
@@ -11,8 +10,6 @@ import SideMenu from "@/components/sideMenu";
 import { NavigationLoader } from "@/components/NavigationLoader";
 import { TestLoaderButton } from "@/components/test-loader-button";
 import { usePathname } from "next/navigation";
-
-const inter = Inter({ subsets: ["latin"] });
 
 const metadata = {
   title: "DynaTech Systems - HR Interviewer",
@@ -49,7 +46,7 @@ export default function RootLayout({
       </head>
       <body
         className={cn(
-          inter.className,
+          "font-sans",
           "antialiased overflow-hidden min-h-screen",
         )}
       >

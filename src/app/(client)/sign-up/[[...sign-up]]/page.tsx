@@ -67,16 +67,17 @@ function SignUpPage() {
   return (
     <div className="flex items-center justify-center min-h-screen w-full bg-gray-100 absolute top-0 left-0 z-50 py-8">
       {/* Desktop View */}
-      <div className="hidden md:flex flex-col items-center justify-center z-10">
+      <div className="hidden md:flex flex-col items-center justify-center z-10" style={{width: "100%"}}>
         {/* Black Card Container */}
         <div className="bg-black rounded-2xl shadow-2xl p-12 w-full max-w-md">
           {/* Header with Logo and Microsoft Badge */}
-          <div className="w-full mb-8">
-            <div className="flex items-center justify-between mb-6">
+          <div className="w-full mb-8 text-center">
+            <div className="flex items-center justify-between mb-6" style={{marginLeft: "32px"}}>
+
               <img 
                 src="/dynatech-logo.png" 
                 alt="DynaTech Systems" 
-                className="h-7 w-auto object-contain brightness-0 invert"
+                className="h-7 w-auto object-contain"
               />
               <div className="flex items-center gap-2">
                 <div className="grid grid-cols-2 gap-0.5 w-4 h-4">
@@ -238,7 +239,7 @@ function SignUpPage() {
           <img 
             src="/dynatech-logo.png" 
             alt="DynaTech Systems" 
-            className="h-10 w-auto mx-auto mb-3 object-contain brightness-0 invert"
+            className="h-10 w-auto mx-auto mb-3 object-contain"
           />
           <h2 className="text-lg mt-4 text-white">
             Mobile version is currently under construction. 🚧
